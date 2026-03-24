@@ -1,0 +1,40 @@
+INFO:     Started server process [44032]
+INFO:     Waiting for application startup.
+ERROR:    Traceback (most recent call last):
+  File "/Users/user/stable-money-avatar/stable-money-avatar/venv311/lib/python3.11/site-packages/starlette/routing.py", line 638, in lifespan
+    async with self.lifespan_context(app) as maybe_state:
+  File "/Users/user/stable-money-avatar/stable-money-avatar/venv311/lib/python3.11/site-packages/fastapi/routing.py", line 237, in __aenter__
+    await self._router._startup()
+  File "/Users/user/stable-money-avatar/stable-money-avatar/venv311/lib/python3.11/site-packages/fastapi/routing.py", line 4880, in _startup
+    await handler()
+  File "/Users/user/stable-money-avatar/stable-money-avatar/server.py", line 67, in load_models
+    models.tts = TTS("tts_models/multilingual/multi-dataset/xtts_v2").to(DEVICE)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/user/stable-money-avatar/stable-money-avatar/venv311/lib/python3.11/site-packages/TTS/api.py", line 74, in __init__
+    self.load_tts_model_by_name(model_name, gpu)
+  File "/Users/user/stable-money-avatar/stable-money-avatar/venv311/lib/python3.11/site-packages/TTS/api.py", line 177, in load_tts_model_by_name
+    self.synthesizer = Synthesizer(
+                       ^^^^^^^^^^^^
+  File "/Users/user/stable-money-avatar/stable-money-avatar/venv311/lib/python3.11/site-packages/TTS/utils/synthesizer.py", line 109, in __init__
+    self._load_tts_from_dir(model_dir, use_cuda)
+  File "/Users/user/stable-money-avatar/stable-money-avatar/venv311/lib/python3.11/site-packages/TTS/utils/synthesizer.py", line 161, in _load_tts_from_dir
+    config = load_config(os.path.join(model_dir, "config.json"))
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/user/stable-money-avatar/stable-money-avatar/venv311/lib/python3.11/site-packages/TTS/config/__init__.py", line 97, in load_config
+    config_class = register_config(model_name.lower())
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/user/stable-money-avatar/stable-money-avatar/venv311/lib/python3.11/site-packages/TTS/config/__init__.py", line 40, in register_config
+    from TTS.tts.configs.xtts_config import XttsConfig
+  File "/Users/user/stable-money-avatar/stable-money-avatar/venv311/lib/python3.11/site-packages/TTS/tts/configs/xtts_config.py", line 5, in <module>
+    from TTS.tts.models.xtts import XttsArgs, XttsAudioConfig
+  File "/Users/user/stable-money-avatar/stable-money-avatar/venv311/lib/python3.11/site-packages/TTS/tts/models/xtts.py", line 12, in <module>
+    from TTS.tts.layers.xtts.stream_generator import init_stream_support
+  File "/Users/user/stable-money-avatar/stable-money-avatar/venv311/lib/python3.11/site-packages/TTS/tts/layers/xtts/stream_generator.py", line 13, in <module>
+    from transformers import (
+ImportError: cannot import name 'BeamSearchScorer' from 'transformers' (/Users/user/stable-money-avatar/stable-money-avatar/venv311/lib/python3.11/site-packages/transformers/__init__.py)
+
+ERROR:    Application startup failed. Exiting.
+[server] Wav2Lip not available — avatar disabled, voice-only mode
+[server] Using device: cpu
+[startup] Loading Coqui XTTS v2…
+ > tts_models/multilingual/multi-dataset/xtts_v2 is already downloaded.

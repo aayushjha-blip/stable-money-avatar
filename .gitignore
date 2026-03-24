@@ -1,0 +1,9 @@
+venv/
+venv311/
+__pycache__/
+*.pyc
+*.pth
+.env
+avatar.jpg
+voice_sample.wav
+checkpoints/
