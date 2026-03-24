@@ -3,504 +3,141 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>Stable Money — AI Avatar Agent</title>
+<title>Stable Money — AI Advisor</title>
 <style>
- :root {
- --cream:#FBF7F0; --blue:#4A90D9; --blue-dark:#2C5F8A;
- --blue-light:#EBF4FF; --gold:#C9962A; --green:#27AE60;
- --red:#E74C3C; --text:#1A1A2E; --muted:#7A8099;
- --radius:16px; --shadow:0 8px 32px rgba(74,144,217,0.12);
- }
- *{box-sizing:border-box;margin:0;padding:0}
- body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--cream);color:var(--text);min-height:100vh}
-
- header{background:#fff;border-bottom:1px solid #E8EDF5;padding:14px 24px;display:flex;align-items:center;gap:12px;box-shadow:0 2px 8px rgba(0,0,0,0.04)}
- .logo{width:36px;height:36px;background:linear-gradient(135deg,var(--blue),var(--blue-dark));border-radius:10px;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:16px}
- header h1{font-size:18px;font-weight:700}
- header span{font-size:13px;color:var(--muted);margin-left:4px}
- .dot{margin-left:auto;width:10px;height:10px;border-radius:50%;background:#ccc;transition:background .3s}
- .dot.ready{background:var(--green);box-shadow:0 0 6px var(--green)}
- .dot.active{background:var(--blue);box-shadow:0 0 8px var(--blue);animation:pulse 1s infinite}
- .dot.speaking{background:var(--gold);box-shadow:0 0 8px var(--gold);animation:pulse .6s infinite}
- @keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
-
- .main{display:flex;gap:20px;padding:20px;max-width:1100px;margin:0 auto}
- .left{flex:1;display:flex;flex-direction:column;gap:16px}
- .right{width:320px;display:flex;flex-direction:column;gap:16px}
-
- .card{background:#fff;border-radius:var(--radius);padding:20px;box-shadow:var(--shadow);border:1px solid #EEF2F8}
- .card-title{font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:14px;display:flex;align-items:center;gap:6px}
-
- /* Avatar */
- .avatar-wrap{position:relative;background:linear-gradient(160deg,#EBF4FF,#D6EAFF);border-radius:var(--radius);overflow:hidden;aspect-ratio:4/3;display:flex;align-items:center;justify-content:center}
- #avatar-video{width:100%;height:100%;object-fit:cover;border-radius:var(--radius);display:none}
- .av-placeholder{display:flex;flex-direction:column;align-items:center;gap:12px}
- .av-face{width:100px;height:100px;border-radius:50%;background:linear-gradient(135deg,var(--blue),var(--blue-dark));display:flex;align-items:center;justify-content:center;font-size:40px;box-shadow:0 8px 24px rgba(74,144,217,.3);position:relative}
- /* mouth animation */
- .mouth{position:absolute;bottom:22px;left:50%;transform:translateX(-50%);width:30px;height:8px;background:#fff;border-radius:0 0 15px 15px;transform-origin:top center;transition:height .1s}
- .av-face.talking .mouth{animation:talk .15s infinite alternate}
- @keyframes talk{0%{height:4px}100%{height:14px}}
- .av-label{font-size:13px;color:var(--muted)}
-
- /* waveform canvas */
- #waveform{width:100%;height:48px;border-radius:8px;background:#F0F6FF;display:block}
-
- /* mic btn */
- .mic-wrap{text-align:center}
- #mic-btn{width:76px;height:76px;border-radius:50%;border:none;background:linear-gradient(135deg,var(--blue),var(--blue-dark));color:#fff;font-size:30px;cursor:pointer;box-shadow:0 6px 20px rgba(74,144,217,.4);transition:transform .2s;display:flex;align-items:center;justify-content:center;margin:0 auto 10px}
- #mic-btn:hover{transform:scale(1.05)}
- #mic-btn.active{background:linear-gradient(135deg,var(--red),#C0392B);animation:mic-p 1s infinite;box-shadow:0 6px 20px rgba(231,76,60,.4)}
- @keyframes mic-p{0%,100%{transform:scale(1)}50%{transform:scale(1.08)}}
- #mic-label{font-size:13px;color:var(--muted)}
-
- #status-bar{text-align:center;font-size:13px;color:var(--muted);padding:8px 12px;border-radius:8px;background:#F5F7FB;font-weight:500;margin-top:10px}
- #status-bar.ok{color:var(--green);background:#F0FFF4}
- #status-bar.active{color:var(--blue);background:var(--blue-light)}
- #status-bar.speaking{color:var(--gold);background:#FFF8E7}
- #status-bar.error{color:var(--red);background:#FFF0EE}
-
- /* transcript */
- #transcript{min-height:50px;background:var(--blue-light);border-radius:10px;padding:12px 14px;font-size:14px;line-height:1.5;border:1px dashed #B8D4F0;color:var(--muted);font-style:italic}
- #transcript.has-text{color:var(--text);font-style:normal}
-
- /* response */
- #response{min-height:80px;max-height:180px;overflow-y:auto;font-size:14px;line-height:1.7}
- .cursor{display:inline-block;width:2px;height:15px;background:var(--blue);margin-left:2px;animation:blink .7s infinite;vertical-align:middle}
- @keyframes blink{0%,100%{opacity:1}50%{opacity:0}}
-
- /* quick prompts */
- .qps{display:flex;flex-wrap:wrap;gap:8px}
- .qp{background:var(--blue-light);color:var(--blue-dark);border:1px solid #C5DCF5;border-radius:20px;padding:6px 14px;font-size:12px;cursor:pointer;transition:background .2s}
- .qp:hover{background:#D0E8FF}
-
- /* log */
- .log{display:flex;flex-direction:column;gap:10px;max-height:260px;overflow-y:auto}
- .li{display:flex;gap:8px;align-items:flex-start}
- .li .bub{padding:8px 12px;border-radius:12px;font-size:13px;line-height:1.5;max-width:100%}
- .li.user .bub{background:var(--blue-light);color:var(--blue-dark);border-radius:12px 12px 4px 12px}
- .li.agent .bub{background:#F0FFF4;color:#1A5C2E;border-radius:12px 12px 12px 4px}
- .la{width:26px;height:26px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:12px}
- .li.user .la{background:var(--blue);color:#fff}
- .li.agent .la{background:var(--green);color:#fff}
-
- /* server config */
- .cfg input{border:1px solid #DDE3EE;border-radius:8px;padding:8px 12px;font-size:13px;color:var(--text);background:#FAFBFD;width:100%;outline:none;transition:border .2s}
- .cfg input:focus{border-color:var(--blue);background:#fff}
- .cfg label{font-size:12px;font-weight:600;color:var(--muted);display:block;margin-bottom:4px;margin-top:10px}
- #connect-btn{background:linear-gradient(135deg,var(--blue),var(--blue-dark));color:#fff;border:none;border-radius:10px;padding:10px;font-size:14px;font-weight:600;cursor:pointer;width:100%;margin-top:12px;transition:opacity .2s}
- #connect-btn:hover{opacity:.9}
-
- /* upload */
- .uploader{border:2px dashed #B8D4F0;border-radius:12px;padding:16px;text-align:center;cursor:pointer;transition:border-color .2s,background .2s}
- .uploader:hover{border-color:var(--blue);background:var(--blue-light)}
- .uploader input{display:none}
- .uploader p{font-size:12px;color:var(--muted);margin-top:4px}
- #photo-prev{width:70px;height:70px;border-radius:50%;object-fit:cover;display:none;margin:0 auto 8px;border:3px solid var(--blue)}
-
- ::-webkit-scrollbar{width:4px}
- ::-webkit-scrollbar-thumb{background:#C5D5E8;border-radius:4px}
+*{box-sizing:border-box;margin:0;padding:0;font-family:'Segoe UI',system-ui,sans-serif;}
+body{background:#08080f;height:100vh;overflow:hidden;display:flex;flex-direction:column;}
+.face-screen{flex:1;position:relative;overflow:hidden;display:flex;align-items:center;justify-content:center;}
+.glow{position:absolute;inset:0;background:radial-gradient(ellipse 60% 70% at 50% 40%,rgba(74,144,217,0.08) 0%,transparent 70%);pointer-events:none;z-index:0;}
+.face-card{position:relative;z-index:1;width:min(360px,88vw);height:min(500px,72vh);border-radius:28px;overflow:hidden;border:1px solid rgba(255,255,255,0.07);transition:box-shadow 0.3s;}
+.face-card img{width:100%;height:100%;object-fit:cover;object-position:center 5%;display:block;}
+.face-card::after{content:"";position:absolute;inset:0;background:linear-gradient(transparent 38%,rgba(8,8,15,0.97) 100%);border-radius:28px;pointer-events:none;}
+.face-card.speaking{box-shadow:0 0 0 3px rgba(74,144,217,0.6),0 0 50px rgba(74,144,217,0.15);}
+.face-info{position:absolute;bottom:88px;left:0;right:0;z-index:3;text-align:center;padding:0 20px;}
+.face-name{font-size:19px;font-weight:600;color:#fff;letter-spacing:-0.2px;}
+.face-sub{font-size:12px;color:rgba(255,255,255,0.38);margin-top:4px;}
+.discuss-btn{position:absolute;bottom:22px;left:50%;transform:translateX(-50%);z-index:3;background:#4A90D9;color:#fff;font-size:14px;font-weight:600;padding:12px 40px;border-radius:50px;border:none;cursor:pointer;box-shadow:0 4px 24px rgba(74,144,217,0.4);transition:all 0.2s;white-space:nowrap;}
+.discuss-btn:hover{transform:translateX(-50%) scale(1.04);}
+.discuss-btn.listening{background:#E74C3C;box-shadow:0 4px 24px rgba(231,76,60,0.45);animation:mpulse 1s infinite;}
+.discuss-btn.speaking-state{background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.12);color:rgba(255,255,255,0.5);box-shadow:none;cursor:default;}
+@keyframes mpulse{0%,100%{transform:translateX(-50%) scale(1)}50%{transform:translateX(-50%) scale(1.06)}}
+.status-pill{position:absolute;top:16px;left:50%;transform:translateX(-50%);z-index:10;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);color:rgba(255,255,255,0.6);font-size:11.5px;font-weight:500;padding:5px 14px;border-radius:20px;display:flex;align-items:center;gap:6px;white-space:nowrap;}
+.sdot{width:5px;height:5px;border-radius:50%;background:#27AE60;animation:sp 2s infinite;}
+@keyframes sp{0%,100%{opacity:1}50%{opacity:0.3}}
+.wave-bars{position:absolute;bottom:22px;left:50%;transform:translateX(-50%);z-index:3;display:none;gap:3px;align-items:flex-end;height:28px;}
+.wave-bars.active{display:flex;}
+.wbar{width:3px;background:rgba(74,144,217,0.85);border-radius:3px;height:4px;transition:height .05s;}
+.transcript-bubble{position:absolute;top:56px;left:50%;transform:translateX(-50%);z-index:10;max-width:min(320px,85vw);background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.1);color:rgba(255,255,255,0.85);font-size:13px;line-height:1.5;padding:8px 14px;border-radius:14px;display:none;text-align:center;}
+.transcript-bubble.visible{display:block;}
+.response-bubble{position:absolute;bottom:160px;left:50%;transform:translateX(-50%);z-index:10;max-width:min(320px,85vw);background:rgba(74,144,217,0.12);border:1px solid rgba(74,144,217,0.2);color:rgba(255,255,255,0.9);font-size:13px;line-height:1.6;padding:10px 16px;border-radius:14px;display:none;text-align:center;}
+.response-bubble.visible{display:block;}
+.chip-bar{padding:10px 14px 16px;background:#08080f;border-top:1px solid rgba(255,255,255,0.05);display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;}
+.chip-bar::-webkit-scrollbar{display:none;}
+.chip{flex-shrink:0;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.09);color:rgba(255,255,255,0.65);font-size:12px;padding:7px 14px;border-radius:18px;cursor:pointer;transition:all 0.18s;white-space:nowrap;}
+.chip:hover{background:rgba(74,144,217,0.18);border-color:rgba(74,144,217,0.35);color:#fff;}
+.chip.new{border-color:rgba(74,144,217,0.35);color:rgba(255,255,255,0.8);}
+.settings-btn{position:absolute;top:16px;right:16px;z-index:10;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);color:rgba(255,255,255,0.5);font-size:12px;padding:5px 12px;border-radius:16px;cursor:pointer;}
+.settings-panel{position:absolute;top:48px;right:16px;z-index:20;background:#12121a;border:1px solid rgba(255,255,255,0.12);border-radius:16px;padding:16px;width:260px;display:none;}
+.settings-panel.open{display:block;}
+.settings-panel label{font-size:11px;color:rgba(255,255,255,0.4);display:block;margin-bottom:4px;margin-top:12px;}
+.settings-panel label:first-child{margin-top:0;}
+.settings-panel input{width:100%;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);border-radius:8px;padding:7px 10px;font-size:13px;color:#fff;outline:none;}
+.settings-panel button{margin-top:12px;width:100%;background:#4A90D9;color:#fff;border:none;border-radius:8px;padding:8px;font-size:13px;font-weight:600;cursor:pointer;}
 </style>
 </head>
 <body>
-
-<header>
- <div class="logo">S</div>
- <h1>Stable Money <span>— AI Avatar Agent</span></h1>
- <div class="dot" id="dot"></div>
-</header>
-
-<div class="main">
- <div class="left">
-
- <!-- Avatar -->
- <div class="card">
- <div class="card-title">🎭 Avatar</div>
- <div class="avatar-wrap">
- <video id="avatar-video" autoplay playsinline muted></video>
- <div class="av-placeholder" id="av-ph">
- <div class="av-face" id="av-face">
- 👤
- <div class="mouth" id="mouth"></div>
- </div>
- <div class="av-label" id="av-label">Waiting for server…</div>
- </div>
- </div>
- </div>
-
- <!-- Waveform -->
- <div class="card" style="padding:14px">
- <canvas id="waveform"></canvas>
- </div>
-
- <!-- Mic -->
- <div class="card mic-wrap">
- <button id="mic-btn" onclick="toggleMic()">🎙️</button>
- <div id="mic-label">Tap to speak</div>
- <div id="status-bar">Connect to your server first…</div>
- </div>
-
- <!-- Transcript -->
- <div class="card">
- <div class="card-title">📝 You said</div>
- <div id="transcript">Your speech will appear here…</div>
- </div>
-
- <!-- Response -->
- <div class="card">
- <div class="card-title">🤖 Agent</div>
- <div id="response"><span style="color:var(--muted);font-style:italic">Response streams here…</span></div>
- </div>
-
- <!-- Quick prompts -->
- <div class="card">
- <div class="card-title">⚡ Quick Questions</div>
- <div class="qps">
- <div class="qp" onclick="send(this.innerText)">What is Stable Money?</div>
- <div class="qp" onclick="send(this.innerText)">How safe are FDs?</div>
- <div class="qp" onclick="send(this.innerText)">What returns can I expect?</div>
- <div class="qp" onclick="send(this.innerText)">How is this different from a bank?</div>
- <div class="qp" onclick="send(this.innerText)">Tell me about Sukoon</div>
- <div class="qp" onclick="send(this.innerText)">How do I start investing?</div>
- </div>
- </div>
-
- </div>
-
- <div class="right">
-
- <!-- Server config -->
- <div class="card cfg">
- <div class="card-title">⚙️ Server Config</div>
- <label>SERVER URL</label>
- <input id="server-url" value="ws://localhost:8000/ws/talk" placeholder="ws://your-server:8000/ws/talk"/>
- <label>ANTHROPIC API KEY</label>
- <input id="anthropic-key" type="password" placeholder="sk-ant-…"/>
- <button id="connect-btn" onclick="connectServer()">🔌 Connect</button>
- </div>
-
- <!-- Upload photo -->
- <div class="card">
- <div class="card-title">📸 Your Photo</div>
- <label class="uploader" for="photo-inp">
- <input type="file" id="photo-inp" accept="image/*" onchange="uploadPhoto(event)"/>
- <img id="photo-prev" src="" alt=""/>
- <div style="font-size:26px">📷</div>
- <p>Upload front-facing photo<br/>to activate your avatar</p>
- </label>
- </div>
-
- <!-- Upload voice -->
- <div class="card">
- <div class="card-title">🎤 Voice Clone</div>
- <label class="uploader" for="voice-inp">
- <input type="file" id="voice-inp" accept="audio/*" onchange="uploadVoice(event)"/>
- <div style="font-size:26px">🎙️</div>
- <p>Upload 6–30s audio sample<br/>to clone your voice</p>
- </label>
- </div>
-
- <!-- Conversation log -->
- <div class="card">
- <div class="card-title">💬 Conversation</div>
- <div class="log" id="log"></div>
- </div>
-
- </div>
+<div class="face-screen">
+<div class="glow"></div>
+<div class="status-pill"><div class="sdot" id="sdot"></div><span id="statusText">Connecting…</span></div>
+<button class="settings-btn" onclick="toggleSettings()">⚙ Settings</button>
+<div class="settings-panel" id="settingsPanel">
+<label>Agent name</label>
+<input id="agentNameInput" value="Aayush" oninput="updateName()"/>
+<label>Server URL</label>
+<input id="serverUrl" value="ws://localhost:8000/ws/talk"/>
+<button onclick="connectServer()">Connect</button>
 </div>
-
+<div class="transcript-bubble" id="transcriptBubble"></div>
+<div class="response-bubble" id="responseBubble"></div>
+<div class="face-card" id="faceCard">
+<img src="/avatar.jpg" alt="Avatar" onerror="this.style.display='none'"/>
+<div class="face-info">
+<div class="face-name" id="agentName">Aayush</div>
+<div class="face-sub">Stable Money · Fixed Income Advisor</div>
+</div>
+<button class="discuss-btn" id="discussBtn" onclick="handleDiscuss()">Discuss</button>
+<div class="wave-bars" id="waveBars">
+<div class="wbar" id="wb0"></div><div class="wbar" id="wb1"></div><div class="wbar" id="wb2"></div><div class="wbar" id="wb3"></div><div class="wbar" id="wb4"></div>
+</div>
+</div>
+</div>
+<div class="chip-bar" id="chipBar">
+<div class="chip" onclick="sendChip(this)">What is Stable Money?</div>
+<div class="chip" onclick="sendChip(this)">How safe are FDs?</div>
+<div class="chip" onclick="sendChip(this)">Expected returns?</div>
+<div class="chip" onclick="sendChip(this)">Tell me about Sukoon</div>
+<div class="chip" onclick="sendChip(this)">Better than bank FDs?</div>
+<div class="chip" onclick="sendChip(this)">Min investment?</div>
+</div>
 <script>
-// ── STATE ──
-const S = {
- ws: null, ready: false, listening: false, speaking: false,
- recognition: null, transcript: '',
- history: [],  // for display only — server handles Claude context
- audioCtx: null, analyser: null, animId: null
-};
-
-const SYSTEM_PROMPT = `You are a friendly financial advisor for Stable Money — India's leading fixed-income investment platform. 
-Stable Money offers FDs from 25+ NBFCs and small finance banks with 8–9.5% returns, plus Sukoon — a no-lock-in idle money product earning 7–8%.
-Be warm, concise (2–4 sentences), and end with a light call-to-action. Speak like a trusted friend who knows finance.`;
-
-// ── SERVER CONNECTION ──
-function connectServer() {
- const url = document.getElementById('server-url').value.trim();
- const aKey = document.getElementById('anthropic-key').value.trim();
- if (!url) { setStatus('Enter server URL', 'error'); return; }
- // API key temporarily disabled for testing
-
- setStatus('🔌 Connecting…', 'active');
- try {
- S.ws = new WebSocket(url);
-
- S.ws.onopen = () => {
- S.ws.send(JSON.stringify({ type: 'config', anthropic_key: aKey, system_prompt: SYSTEM_PROMPT }));
- // Pre-request mic permission so it's ready when user taps
- navigator.mediaDevices.getUserMedia({ audio: true })
-   .then(s => { s.getTracks().forEach(t => t.stop()); console.log('Mic ready'); })
-   .catch(e => console.warn('Mic permission:', e));
- S.ready = true;
- setStatus('✅ Connected! Tap mic to speak', 'ok');
- document.getElementById('dot').className = 'dot ready';
- document.getElementById('av-label').textContent = 'Ready to talk';
- document.getElementById('connect-btn').textContent = '✅ Connected';
- };
-
- S.ws.onmessage = e => handleServerMsg(JSON.parse(e.data));
-
- S.ws.onerror = () => { setStatus('❌ Connection failed', 'error'); S.ready = false; };
- S.ws.onclose = () => { setStatus('⚠️ Disconnected', 'error'); S.ready = false; document.getElementById('dot').className = 'dot'; };
-
- } catch(err) { setStatus('❌ ' + err.message, 'error'); }
+const S={ws:null,ready:false,listening:false,speaking:false,continuous:false,recognition:null,transcript:"",audioCtx:null,analyser:null,mouthId:null};
+const FOLLOW_UPS={"stable money":["How do I sign up?","Is it SEBI regulated?","What FDs are available?"],"fd":["Which NBFC gives best returns?","Is my money locked?","What about tax on FD?"],"safe":["What is DICGC insurance?","What if NBFC fails?","How is money protected?"],"return":["How is interest paid?","Monthly or yearly payout?","Can I reinvest returns?"],"sukoon":["Is Sukoon better than savings?","Can I withdraw anytime?","Minimum for Sukoon?"],"invest":["How do I start?","What documents needed?","How long does KYC take?"],"bank":["Better than FD in SBI?","How much better are returns?","Is process fully online?"]};
+function updateName(){document.getElementById("agentName").textContent=document.getElementById("agentNameInput").value||"Aayush";}
+function toggleSettings(){document.getElementById("settingsPanel").classList.toggle("open");}
+function setStatus(text,color="green"){document.getElementById("statusText").textContent=text;const c={green:"#27AE60",blue:"#4A90D9",red:"#E74C3C",gold:"#C9962A"};document.getElementById("sdot").style.background=c[color]||color;}
+function showTranscript(text){const el=document.getElementById("transcriptBubble");el.textContent="🎙 "+text;el.classList.add("visible");setTimeout(()=>el.classList.remove("visible"),3000);}
+function showResponse(text){const el=document.getElementById("responseBubble");el.textContent=text;el.classList.add("visible");}
+function hideResponse(){document.getElementById("responseBubble").classList.remove("visible");}
+function connectServer(){const url=document.getElementById("serverUrl").value.trim();document.getElementById("settingsPanel").classList.remove("open");setStatus("Connecting…","gold");try{S.ws=new WebSocket(url);S.ws.onopen=()=>{S.ws.send(JSON.stringify({type:"config",system_prompt:"You are a friendly Stable Money advisor."}));S.ready=true;setStatus("Ready · Tap Discuss","green");navigator.mediaDevices.getUserMedia({audio:true}).then(s=>{s.getTracks().forEach(t=>t.stop());}).catch(()=>{});};S.ws.onmessage=e=>handleMsg(JSON.parse(e.data));S.ws.onerror=()=>{setStatus("Connection failed","red");S.ready=false;};S.ws.onclose=()=>{setStatus("Disconnected","red");S.ready=false;};}catch(err){setStatus("Error: "+err.message,"red");}}
+function handleMsg(msg){
+  if(msg.type==="text_chunk"){
+    showResponse(msg.text);
+    updateChips(msg.text);
+    speakBrowser(msg.text);
+  }
+  if(msg.type==="done"){ /* audio handled by browser TTS */ }
+  if(msg.type==="error"){setStatus("Error: "+msg.msg,"red");resetState();}
 }
-
-function handleServerMsg(msg) {
- switch(msg.type) {
-
- case 'status':
- const labels = { synthesizing:'🔊 Synthesizing voice…', animating:'🎭 Animating avatar…' };
- setStatus(labels[msg.msg] || msg.msg, 'active');
- break;
-
- case 'text_chunk':
- // streaming Claude response
- appendResponse(msg.text);
- break;
-
- case 'audio':
- playAudio(msg.data, msg.format);
- break;
-
- case 'video':
- playVideo(msg.data);
- break;
-
- case 'done':
- if (_respText.trim()) addLog('agent', _respText);
- break;
-
- case 'error':
- setStatus('❌ ' + msg.msg, 'error');
- S.speaking = false;
- break;
- }
+function speakBrowser(text){
+  window.speechSynthesis.cancel();
+  const utt=new SpeechSynthesisUtterance(text);
+  utt.rate=1.05; utt.pitch=1.0; utt.volume=1.0;
+  const voices=window.speechSynthesis.getVoices();
+  const preferred=voices.find(v=>v.name.includes("Samantha")||v.name.includes("Karen")||v.name.includes("Daniel")||v.lang==="en-IN");
+  if(preferred)utt.voice=preferred;
+  document.getElementById("faceCard").classList.add("speaking");
+  document.getElementById("waveBars").classList.add("active");
+  document.getElementById("discussBtn").classList.add("speaking-state");
+  document.getElementById("discussBtn").textContent="Speaking…";
+  setStatus("Speaking…","blue");
+  utt.onend=()=>{ resetState(); if(S.continuous)startListening(); };
+  window.speechSynthesis.speak(utt);
 }
-
-// ── AUDIO PLAYBACK + WAVEFORM ──
-function playAudio(b64, fmt) {
- const bytes = Uint8Array.from(atob(b64), c => c.charCodeAt(0));
- const blob = new Blob([bytes], { type: `audio/${fmt}` });
- const url  = URL.createObjectURL(blob);
- const audio = new Audio(url);
-
- // waveform
- if (!S.audioCtx) S.audioCtx = new AudioContext();
- const src = S.audioCtx.createMediaElementSource(audio);
- S.analyser = S.audioCtx.createAnalyser();
- S.analyser.fftSize = 256;
- src.connect(S.analyser);
- S.analyser.connect(S.audioCtx.destination);
-
- audio.onplay = () => {
- S.speaking = true;
- setStatus('🔊 Speaking…', 'speaking');
- document.getElementById('dot').className = 'dot speaking';
- document.getElementById('av-face').classList.add('talking');
- drawWaveform();
- };
- audio.onended = () => {
- cancelAnimationFrame(S.animId);
- clearWaveform();
- S.speaking = false;
- setStatus('✅ Ready! Tap mic to speak', 'ok');
- document.getElementById('dot').className = 'dot ready';
- document.getElementById('av-face').classList.remove('talking');
- document.getElementById('mic-btn').disabled = false;
- };
- audio.play().catch(console.error);
+function handleDiscuss(){
+  if(!S.ready){setStatus("Connect first — tap ⚙","red");return;}
+  if(S.speaking){
+    window.speechSynthesis.cancel();
+    resetState();
+    S.continuous=false;
+    return;
+  }
+  if(S.listening){
+    stopListening();
+    S.continuous=false;
+    return;
+  }
+  S.continuous=true;
+  startListening();
 }
-
-function drawWaveform() {
- const canvas = document.getElementById('waveform');
- const ctx = canvas.getContext('2d');
- const buf = new Uint8Array(S.analyser.frequencyBinCount);
-
- function frame() {
- S.animId = requestAnimationFrame(frame);
- S.analyser.getByteFrequencyData(buf);
- ctx.clearRect(0, 0, canvas.width, canvas.height);
- const bw = canvas.width / buf.length;
- buf.forEach((v, i) => {
- const h = (v / 255) * canvas.height;
- const hue = 210 + (v / 255) * 30;
- ctx.fillStyle = `hsla(${hue},70%,60%,0.8)`;
- ctx.fillRect(i * bw, canvas.height - h, bw - 1, h);
- });
- }
- frame();
-}
-
-function clearWaveform() {
- const canvas = document.getElementById('waveform');
- canvas.getContext('2d').clearRect(0, 0, canvas.width, canvas.height);
-}
-
-// ── VIDEO PLAYBACK ──
-function playVideo(b64) {
- const bytes = Uint8Array.from(atob(b64), c => c.charCodeAt(0));
- const blob = new Blob([bytes], { type: 'video/mp4' });
- const url  = URL.createObjectURL(blob);
- const vid  = document.getElementById('avatar-video');
- vid.src = url;
- vid.style.display = 'block';
- document.getElementById('av-ph').style.display = 'none';
- vid.play().catch(console.error);
- vid.onended = () => {
- vid.style.display = 'none';
- document.getElementById('av-ph').style.display = 'flex';
- };
-}
-
-// ── MIC ──
-function toggleMic() {
- if (!S.ready) { setStatus('⚠️ Connect to server first', 'error'); return; }
- if (S.speaking) return;
- S.listening ? stopMic() : startMic();
-}
-
-function startMic() {
- const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
- if (!SR) { setStatus('❌ Browser STT not supported — use Chrome/Edge', 'error'); return; }
-
- S.recognition = new SR();
- S.recognition.continuous = false;
- S.recognition.interimResults = true;
- S.recognition.lang = 'en-IN';
-
- S.recognition.onstart = () => {
- S.listening = true;
- document.getElementById('mic-btn').classList.add('active');
- document.getElementById('mic-btn').textContent = '🔴';
- document.getElementById('mic-label').textContent = 'Listening…';
- setStatus('🎙️ Listening…', 'active');
- document.getElementById('dot').className = 'dot active';
- setTranscript('', false);
- };
-
- S.recognition.onresult = e => {
- let interim = '', final = '';
- for (let i = e.resultIndex; i < e.results.length; i++) {
- e.results[i].isFinal
- ? (final += e.results[i][0].transcript)
- : (interim += e.results[i][0].transcript);
- }
- setTranscript(final || interim, !!final);
- if (final) S.transcript = final;
- };
-
- S.recognition.onend = () => {
- stopMic();
- if (S.transcript) send(S.transcript);
- };
-
- S.recognition.onerror = err => {
- setStatus('❌ Mic: ' + err.error, 'error');
- stopMic();
- };
-
- S.recognition.start();
-}
-
-function stopMic() {
- S.listening = false;
- document.getElementById('mic-btn').classList.remove('active');
- document.getElementById('mic-btn').textContent = '🎙️';
- document.getElementById('mic-label').textContent = 'Tap to speak';
- if (S.recognition) { try { S.recognition.stop(); } catch {} }
-}
-
-// ── SEND TO SERVER ──
-function send(text) {
- if (!S.ready || S.speaking || S.listening) return;
- if (!text.trim()) return;
-
- resetResponse();
- setTranscript(text, true);
- addLog('user', text);
- S.transcript = '';
- S.speaking = true;
-
- document.getElementById('response').innerHTML = '<span class="cursor"></span>';
- document.getElementById('mic-btn').disabled = true;
- setStatus('🧠 Thinking…', 'active');
-
- S.ws.send(JSON.stringify({ type: 'speak', text, history: S.history }));
- S.history.push({ role: 'user', content: text });
-}
-
-let _respText = '';
-
-function resetResponse() {
-  _respText = '';
-  document.getElementById('response').innerHTML =
-    '<span style="color:var(--muted);font-style:italic">Response streams here…</span>';
-}
-function appendResponse(chunk) {
- _respText = chunk;
- document.getElementById('response').innerHTML = _respText + '<span class="cursor"></span>';
- if (S.history.length && S.history[S.history.length-1].role === 'user') {
- S.history.push({ role: 'assistant', content: _respText });
- } else if (S.history.length && S.history[S.history.length-1].role === 'assistant') {
- S.history[S.history.length-1].content = _respText;
- }
-}
-
-// ── UPLOADS ──
-async function uploadPhoto(e) {
- const file = e.target.files[0]; if (!file) return;
- const prev = document.getElementById('photo-prev');
- prev.src = URL.createObjectURL(file);
- prev.style.display = 'block';
-
- const serverBase = document.getElementById('server-url').value.replace('ws','http').replace('/ws/talk','');
- const fd = new FormData(); fd.append('file', file);
- const res = await fetch(`${serverBase}/upload/avatar`, { method:'POST', body:fd });
- const d  = await res.json();
- setStatus(d.status === 'ok' ? '✅ Avatar photo uploaded!' : '❌ Upload failed', d.status === 'ok' ? 'ok':'error');
-}
-
-async function uploadVoice(e) {
- const file = e.target.files[0]; if (!file) return;
- const serverBase = document.getElementById('server-url').value.replace('ws','http').replace('/ws/talk','');
- const fd = new FormData(); fd.append('file', file);
- const res = await fetch(`${serverBase}/upload/voice`, { method:'POST', body:fd });
- const d  = await res.json();
- setStatus(d.status === 'ok' ? '✅ Voice sample uploaded — cloning active!' : '❌ Upload failed', d.status === 'ok' ? 'ok':'error');
-}
-
-// ── HELPERS ──
-function setTranscript(t, isFinal) {
- const el = document.getElementById('transcript');
- if (!t) { el.textContent = 'Your speech will appear here…'; el.classList.remove('has-text'); return; }
- el.classList.add('has-text');
- el.textContent = t + (isFinal ? '' : ' …');
-}
-
-function setStatus(msg, type='') {
- const el = document.getElementById('status-bar');
- el.textContent = msg;
- el.className = '';
- if (type) el.classList.add(type);
-}
-
-function addLog(role, text) {
- const log = document.getElementById('log');
- const el = document.createElement('div');
- el.className = `li ${role}`;
- el.innerHTML = `<div class="la">${role==='user'?'👤':'🤖'}</div><div class="bub">${text.slice(0,100)}${text.length>100?'…':''}</div>`;
- log.appendChild(el);
- log.scrollTop = log.scrollHeight;
- if (role === 'agent') _respText = '';
-}
+function startListening(){const SR=window.SpeechRecognition||window.webkitSpeechRecognition;if(!SR){setStatus("Use Chrome for mic","red");return;}S.recognition=new SR();S.recognition.continuous=false;S.recognition.interimResults=true;S.recognition.lang="en-IN";S.recognition.onstart=()=>{S.listening=true;document.getElementById("discussBtn").classList.add("listening");document.getElementById("discussBtn").textContent="Listening…";setStatus("Listening…","red");};S.recognition.onresult=e=>{let final="",interim="";for(let i=e.resultIndex;i<e.results.length;i++){e.results[i].isFinal?(final+=e.results[i][0].transcript):(interim+=e.results[i][0].transcript);}if(final)S.transcript=final;showTranscript(final||interim);};S.recognition.onend=()=>{stopListening();if(S.transcript)sendText(S.transcript);};S.recognition.onerror=()=>{stopListening();setStatus("Mic error","red");};S.recognition.start();}
+function stopListening(){S.listening=false;if(S.recognition)try{S.recognition.stop();}catch{}document.getElementById("discussBtn").classList.remove("listening");document.getElementById("discussBtn").textContent="Discuss";}
+function sendText(text){if(!S.ws||!S.ready)return;S.speaking=true;S.transcript="";hideResponse();document.getElementById("discussBtn").classList.add("speaking-state");document.getElementById("discussBtn").textContent="Thinking…";setStatus("Thinking…","blue");S.ws.send(JSON.stringify({type:"speak",text}));}
+function playAudio(b64,fmt){const bytes=Uint8Array.from(atob(b64),c=>c.charCodeAt(0));const blob=new Blob([bytes],{type:"audio/"+fmt});const url=URL.createObjectURL(blob);const audio=new Audio(url);if(!S.audioCtx)S.audioCtx=new AudioContext();const src=S.audioCtx.createMediaElementSource(audio);S.analyser=S.audioCtx.createAnalyser();S.analyser.fftSize=256;src.connect(S.analyser);S.analyser.connect(S.audioCtx.destination);audio.onplay=()=>{document.getElementById("faceCard").classList.add("speaking");document.getElementById("waveBars").classList.add("active");document.getElementById("discussBtn").classList.add("speaking-state");document.getElementById("discussBtn").textContent="Speaking…";setStatus("Speaking…","blue");driveMouth();};audio.onended=()=>{cancelAnimationFrame(S.mouthId);resetState();};audio.play().catch(()=>resetState());}
+function driveMouth(){const bars=[0,1,2,3,4].map(i=>document.getElementById("wb"+i));if(!S.analyser)return;const buf=new Uint8Array(S.analyser.frequencyBinCount);function frame(){S.mouthId=requestAnimationFrame(frame);S.analyser.getByteFrequencyData(buf);const lo=Math.floor(buf.length*0.02),hi=Math.floor(buf.length*0.15);let sum=0;for(let i=lo;i<hi;i++)sum+=buf[i];const s=(sum/(hi-lo))/255;const h=[6+s*14,8+s*20,10+s*26,8+s*20,6+s*14];bars.forEach((b,i)=>{if(b)b.style.height=h[i]+"px";});}frame();}
+function resetState(){S.speaking=false;document.getElementById("faceCard").classList.remove("speaking");document.getElementById("waveBars").classList.remove("active");document.getElementById("discussBtn").classList.remove("speaking-state","listening");document.getElementById("discussBtn").textContent="Discuss";setStatus("Ready · Tap Discuss","green");[0,1,2,3,4].forEach(i=>{const b=document.getElementById("wb"+i);if(b)b.style.height="4px";});}
+function sendChip(el){if(S.speaking)return;if(!S.ready){setStatus("Connect first — tap ⚙","red");return;}if(S.listening){stopListening();}showTranscript(el.textContent);sendText(el.textContent);}
+function updateChips(t){t=t.toLowerCase();for(const[key,chips]of Object.entries(FOLLOW_UPS)){if(t.includes(key)){const bar=document.getElementById("chipBar");chips.forEach(text=>{if([...bar.querySelectorAll(".chip")].find(c=>c.textContent===text))return;const chip=document.createElement("div");chip.className="chip new";chip.textContent=text;chip.onclick=()=>sendChip(chip);bar.insertBefore(chip,bar.firstChild);});break;}}}
+window.onload=()=>{ setTimeout(connectServer, 500); };
 </script>
 </body>
 </html>
