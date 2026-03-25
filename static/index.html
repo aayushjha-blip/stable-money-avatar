@@ -9,23 +9,23 @@
 body{background:#0a0a0f;color:#fff;font-family:-apple-system,sans-serif;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;}
 .status-bar{position:fixed;top:16px;left:50%;transform:translateX(-50%);background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.12);border-radius:20px;padding:6px 16px;font-size:13px;display:flex;align-items:center;gap:8px;}
 .dot{width:8px;height:8px;border-radius:50%;background:#666;}
-.dot.green{background:#4ade80;} .dot.gold{background:#fbbf24;} .dot.blue{background:#60a5fa;} .dot.red{background:#f87171;}
+.dot.green{background:#4ade80;}.dot.gold{background:#fbbf24;}.dot.blue{background:#60a5fa;}.dot.red{background:#f87171;}
 .settings-btn{position:fixed;top:16px;right:16px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.12);border-radius:20px;padding:6px 14px;font-size:13px;cursor:pointer;color:#fff;}
 .settings-panel{position:fixed;top:56px;right:16px;background:#1a1a2e;border:1px solid rgba(255,255,255,0.15);border-radius:12px;padding:16px;width:300px;display:none;z-index:100;}
 .settings-panel.open{display:block;}
 .settings-panel input{width:100%;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.2);border-radius:8px;padding:8px;color:#fff;font-size:13px;margin:8px 0;}
-.settings-panel button{width:100%;background:#4a90d9;border:none;border-radius:8px;padding:8px;color:#fff;cursor:pointer;font-size:14px;}
-.face-card{width:300px;height:380px;background:#141420;border:1px solid rgba(255,255,255,0.08);border-radius:24px;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;position:relative;overflow:hidden;}
-.face-card.speaking{box-shadow:0 0 0 2px rgba(74,144,217,0.7),0 0 40px rgba(74,144,217,0.15);}
-.response-bubble{position:absolute;top:12px;left:12px;right:12px;background:rgba(0,0,0,0.65);border:1px solid rgba(255,255,255,0.1);border-radius:12px;padding:10px 12px;font-size:13px;line-height:1.5;display:none;z-index:2;}
-#avatarSvg{width:100%;height:100%;position:absolute;top:0;left:0;}
-.name-block{text-align:center;padding-bottom:16px;position:relative;z-index:2;}
-.name-block h2{font-size:20px;font-weight:700;letter-spacing:-0.3px;}
-.name-block p{font-size:13px;color:rgba(255,255,255,0.45);margin-top:2px;}
+.settings-panel button{width:100%;background:#4a90d9;border:none;border-radius:8px;padding:8px;color:#fff;cursor:pointer;}
+.face-card{width:300px;height:380px;background:#141420;border:1px solid rgba(255,255,255,0.08);border-radius:24px;overflow:hidden;position:relative;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;}
+.face-card.speaking{box-shadow:0 0 0 2px rgba(74,144,217,0.7),0 0 40px rgba(74,144,217,0.12);}
+.response-bubble{position:absolute;top:12px;left:12px;right:12px;background:rgba(0,0,0,0.7);border:1px solid rgba(255,255,255,0.1);border-radius:12px;padding:10px 12px;font-size:13px;line-height:1.5;display:none;z-index:2;}
+#avatarSvg{position:absolute;top:0;left:0;width:100%;height:100%;}
+.name-block{position:relative;z-index:2;text-align:center;padding-bottom:14px;}
+.name-block h2{font-size:20px;font-weight:700;}
+.name-block p{font-size:12px;color:rgba(255,255,255,0.4);margin-top:2px;}
 .discuss-btn{background:linear-gradient(135deg,#4a90d9,#357abd);border:none;border-radius:24px;padding:14px 52px;font-size:17px;font-weight:600;color:#fff;cursor:pointer;}
 .discuss-btn:disabled{opacity:0.5;cursor:default;}
 .chips{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;max-width:480px;padding:0 16px;}
-.chip{background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.12);border-radius:20px;padding:8px 14px;font-size:13px;cursor:pointer;transition:background 0.2s;}
+.chip{background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.12);border-radius:20px;padding:8px 14px;font-size:13px;cursor:pointer;}
 .chip:hover{background:rgba(255,255,255,0.13);}
 </style>
 </head>
@@ -33,7 +33,7 @@ body{background:#0a0a0f;color:#fff;font-family:-apple-system,sans-serif;min-heig
 <div class="status-bar"><div class="dot" id="dot"></div><span id="statusText">Connecting…</span></div>
 <button class="settings-btn" onclick="toggleSettings()">⚙ Settings</button>
 <div class="settings-panel" id="settingsPanel">
-  <div style="font-size:13px;margin-bottom:4px;color:rgba(255,255,255,0.5);">WebSocket URL</div>
+  <div style="font-size:13px;color:rgba(255,255,255,0.5);margin-bottom:4px;">WebSocket URL</div>
   <input type="text" id="serverUrl" value="ws://localhost:8000/ws/talk"/>
   <button onclick="connectServer()">Connect</button>
 </div>
@@ -42,44 +42,51 @@ body{background:#0a0a0f;color:#fff;font-family:-apple-system,sans-serif;min-heig
   <div class="response-bubble" id="responseBubble"></div>
   <svg id="avatarSvg" viewBox="0 0 300 380" xmlns="http://www.w3.org/2000/svg">
     <!-- Shirt -->
-    <path d="M0 380 Q20 320 75 305 Q150 295 225 305 Q280 320 300 380Z" fill="#3b5fc0"/>
-    <!-- Collar -->
-    <path d="M112 305 L138 328 L150 318 L162 328 L188 305" fill="none" stroke="white" stroke-width="2.5"/>
-    <!-- Neck -->
-    <rect x="133" y="285" width="34" height="24" rx="8" fill="#c07848"/>
+    <path d="M0 380 Q0 310 65 295 Q150 282 235 295 Q300 310 300 380Z" fill="#2d54c4"/>
+    <!-- V collar -->
+    <path d="M110 295 L150 320 L190 295" fill="none" stroke="white" stroke-width="2.5"/>
+    <!-- Neck - wide and natural -->
+    <path d="M122 268 Q150 278 178 268 L180 292 Q150 302 120 292Z" fill="#b86e3a"/>
     <!-- Head -->
-    <ellipse cx="150" cy="195" rx="80" ry="88" fill="#d4956a"/>
+    <ellipse cx="150" cy="175" rx="85" ry="92" fill="#c97c42"/>
     <!-- Hair -->
-    <ellipse cx="150" cy="116" rx="80" ry="34" fill="#1a0a04"/>
-    <rect x="70" y="116" width="18" height="70" rx="9" fill="#1a0a04"/>
-    <rect x="212" y="116" width="18" height="70" rx="9" fill="#1a0a04"/>
-    <!-- Ears -->
-    <ellipse cx="70" cy="200" rx="11" ry="14" fill="#c07848"/>
-    <ellipse cx="230" cy="200" rx="11" ry="14" fill="#c07848"/>
+    <path d="M67 148 Q72 78 150 72 Q228 78 233 148 Q210 118 150 116 Q90 118 67 148Z" fill="#1c0c04"/>
+    <!-- Hair sides -->
+    <path d="M67 148 Q60 172 64 200 Q70 178 78 165Z" fill="#1c0c04"/>
+    <path d="M233 148 Q240 172 236 200 Q230 178 222 165Z" fill="#1c0c04"/>
+    <!-- Ears - properly attached -->
+    <ellipse cx="65" cy="182" rx="11" ry="15" fill="#b86e3a"/>
+    <ellipse cx="65" cy="182" rx="6" ry="9" fill="#a05e2a"/>
+    <ellipse cx="235" cy="182" rx="11" ry="15" fill="#b86e3a"/>
+    <ellipse cx="235" cy="182" rx="6" ry="9" fill="#a05e2a"/>
     <!-- Eyebrows -->
-    <path d="M108 168 Q122 162 136 168" stroke="#3d1a08" stroke-width="3.5" fill="none" stroke-linecap="round"/>
-    <path d="M164 168 Q178 162 192 168" stroke="#3d1a08" stroke-width="3.5" fill="none" stroke-linecap="round"/>
+    <path d="M105 152 Q122 145 138 151" stroke="#3d1a08" stroke-width="3.5" fill="none" stroke-linecap="round"/>
+    <path d="M162 151 Q178 145 195 152" stroke="#3d1a08" stroke-width="3.5" fill="none" stroke-linecap="round"/>
     <!-- Eye whites -->
-    <ellipse cx="122" cy="185" rx="16" ry="13" fill="white"/>
-    <ellipse cx="178" cy="185" rx="16" ry="13" fill="white"/>
+    <ellipse cx="120" cy="170" rx="15" ry="12" fill="white"/>
+    <ellipse cx="180" cy="170" rx="15" ry="12" fill="white"/>
     <!-- Iris -->
-    <ellipse cx="122" cy="185" rx="9" ry="9" fill="#2c1a10"/>
-    <ellipse cx="178" cy="185" rx="9" ry="9" fill="#2c1a10"/>
+    <ellipse cx="120" cy="170" rx="8" ry="8" fill="#2c1408"/>
+    <ellipse cx="180" cy="170" rx="8" ry="8" fill="#2c1408"/>
     <!-- Pupil -->
-    <ellipse cx="122" cy="185" rx="4.5" ry="4.5" fill="#080402"/>
-    <ellipse cx="178" cy="185" rx="4.5" ry="4.5" fill="#080402"/>
+    <ellipse cx="120" cy="170" rx="4" ry="4" fill="#060200"/>
+    <ellipse cx="180" cy="170" rx="4" ry="4" fill="#060200"/>
     <!-- Shine -->
-    <ellipse cx="125" cy="182" rx="2" ry="2" fill="white"/>
-    <ellipse cx="181" cy="182" rx="2" ry="2" fill="white"/>
-    <!-- Eyelids (blink) -->
-    <ellipse id="leftLid" cx="122" cy="185" rx="16" ry="0" fill="#d4956a"/>
-    <ellipse id="rightLid" cx="178" cy="185" rx="16" ry="0" fill="#d4956a"/>
+    <ellipse cx="123" cy="167" rx="2" ry="2" fill="white"/>
+    <ellipse cx="183" cy="167" rx="2" ry="2" fill="white"/>
+    <!-- Eyelid blink overlays - same color as face -->
+    <ellipse id="leftLid" cx="120" cy="170" rx="15" ry="0" fill="#c97c42"/>
+    <ellipse id="rightLid" cx="180" cy="170" rx="15" ry="0" fill="#c97c42"/>
     <!-- Nose -->
-    <path d="M145 215 Q150 226 155 215" stroke="#a06040" stroke-width="2" fill="none" stroke-linecap="round"/>
-    <!-- Mouth -->
-    <path d="M130 245 Q150 255 170 245" stroke="#8a4030" stroke-width="2.5" fill="none" stroke-linecap="round"/>
-    <ellipse id="mouthOpen" cx="150" cy="248" rx="18" ry="0" fill="#6a2010"/>
-    <path id="lowerLip" d="M130 248 Q150 254 170 248" stroke="#8a4030" stroke-width="1.5" fill="#c07050" stroke-linecap="round"/>
+    <path d="M144 200 Q150 213 156 200" stroke="#9a5828" stroke-width="2" fill="none" stroke-linecap="round"/>
+    <ellipse cx="143" cy="210" rx="4" ry="3" fill="#9a5828" opacity="0.5"/>
+    <ellipse cx="157" cy="210" rx="4" ry="3" fill="#9a5828" opacity="0.5"/>
+    <!-- Smile -->
+    <path d="M122 238 Q150 250 178 238" stroke="#7a3820" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+    <!-- Mouth open (animated) -->
+    <ellipse id="mouthOpen" cx="150" cy="242" rx="22" ry="0" fill="#5a1808"/>
+    <!-- Lower lip (animated) -->
+    <path id="lowerLip" d="M122 242 Q150 249 178 242" stroke="#7a3820" stroke-width="1.5" fill="#b06040" stroke-linecap="round"/>
   </svg>
   <div class="name-block">
     <h2>StableAI</h2>
@@ -102,13 +109,10 @@ body{background:#0a0a0f;color:#fff;font-family:-apple-system,sans-serif;min-heig
 const S={ws:null,ready:false,speaking:false,audioCtx:null,analyser:null,animId:null};
 
 function toggleSettings(){document.getElementById("settingsPanel").classList.toggle("open");}
-
 function setStatus(txt,color){
   document.getElementById("statusText").textContent=txt;
-  const d=document.getElementById("dot");
-  d.className="dot"+(color?" "+color:"");
+  document.getElementById("dot").className="dot"+(color?" "+color:"");
 }
-
 function connectServer(){
   const url=document.getElementById("serverUrl").value.trim();
   document.getElementById("settingsPanel").classList.remove("open");
@@ -121,17 +125,12 @@ function connectServer(){
     S.ws.onclose=()=>{setStatus("Disconnected","red");S.ready=false;};
   }catch(e){setStatus("Error: "+e.message,"red");}
 }
-
 function handleMsg(msg){
-  if(msg.type==="text_chunk"){
-    const b=document.getElementById("responseBubble");
-    b.textContent=msg.text;b.style.display="block";
-  }
+  if(msg.type==="text_chunk"){const b=document.getElementById("responseBubble");b.textContent=msg.text;b.style.display="block";}
   if(msg.type==="audio"){playAudio(msg.data,msg.format);}
   if(msg.type==="done"){if(!S.speaking)resetState();}
   if(msg.type==="error"){setStatus("Error","red");resetState();}
 }
-
 function playAudio(b64,fmt){
   const bytes=Uint8Array.from(atob(b64),c=>c.charCodeAt(0));
   const blob=new Blob([bytes],{type:"audio/"+fmt});
@@ -151,7 +150,6 @@ function playAudio(b64,fmt){
   audio.onended=()=>{cancelAnimationFrame(S.animId);setMouth(0);resetState();};
   audio.play().catch(()=>resetState());
 }
-
 function driveMouth(){
   if(!S.analyser)return;
   const data=new Uint8Array(S.analyser.frequencyBinCount);
@@ -160,29 +158,25 @@ function driveMouth(){
   setMouth(vol);
   S.animId=requestAnimationFrame(driveMouth);
 }
-
 function setMouth(vol){
-  const ry=Math.min(vol*2.8,1)*13;
+  const ry=Math.min(vol*3,1)*12;
   document.getElementById("mouthOpen").setAttribute("ry",ry);
-  document.getElementById("lowerLip").setAttribute("d",`M130 248 Q150 ${254+ry*0.7} 170 248`);
+  document.getElementById("lowerLip").setAttribute("d",`M122 242 Q150 ${249+ry*0.8} 178 242`);
 }
-
 function startBlinking(){
   function blink(){
-    let t=0;const dur=140;
+    let t=0;
     const iv=setInterval(()=>{
-      t+=16;
-      const p=t<dur/2?t/(dur/2):2-t/(dur/2);
-      const ry=p*13;
+      t+=20;
+      const p=t<80?t/80:Math.max(0,(160-t)/80);
+      const ry=p*12;
       document.getElementById("leftLid").setAttribute("ry",ry);
       document.getElementById("rightLid").setAttribute("ry",ry);
-      if(t>=dur)clearInterval(iv);
-    },16);
-    setTimeout(blink,2000+Math.random()*3000);
+      if(t>=160){clearInterval(iv);setTimeout(blink,2500+Math.random()*2500);}
+    },20);
   }
-  setTimeout(blink,1000);
+  setTimeout(blink,1500);
 }
-
 function resetState(){
   S.speaking=false;
   document.getElementById("faceCard").classList.remove("speaking");
@@ -191,12 +185,7 @@ function resetState(){
   setStatus("Ready · Tap Discuss","green");
   setTimeout(()=>{document.getElementById("responseBubble").style.display="none";},3000);
 }
-
-function startDiscuss(){
-  if(!S.ready){connectServer();return;}
-  sendText("What is Stable Money?");
-}
-
+function startDiscuss(){if(!S.ready){connectServer();return;}sendText("What is Stable Money?");}
 function sendText(text){
   if(!S.ws||!S.ready)return;
   S.speaking=true;
@@ -205,7 +194,6 @@ function sendText(text){
   setStatus("Thinking…","blue");
   S.ws.send(JSON.stringify({type:"speak",text}));
 }
-
 window.onload=()=>setTimeout(connectServer,500);
 </script>
 </body>
