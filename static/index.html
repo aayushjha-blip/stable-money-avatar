@@ -69,7 +69,7 @@ function connectServer(){
 function handleMsg(msg){
   if(msg.type==="text_chunk"){const b=document.getElementById("responseBubble");b.textContent=msg.text;b.style.display="block";}
   if(msg.type==="audio"){playAudio(msg.data,msg.format);}
-  if(msg.type==="done"){if(!S.speaking)resetState();}
+  if(msg.type==="done"){ if(!S.speaking)resetState(); }
   if(msg.type==="error"){setStatus("Error","red");resetState();}
 }
 function playAudio(b64,fmt){
