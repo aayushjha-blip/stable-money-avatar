@@ -33,7 +33,7 @@ body{background:#0a0a0f;color:#fff;font-family:-apple-system,sans-serif;min-heig
 <button class="settings-btn" onclick="toggleSettings()">⚙ Settings</button>
 <div class="settings-panel" id="settingsPanel">
   <div style="font-size:13px;color:rgba(255,255,255,0.5);margin-bottom:4px;">WebSocket URL</div>
-  <input type="text" id="serverUrl" value="wss://achenial-mousily-tamiko.ngrok-free.dev/ws/talk"/>
+  <input type="text" id="serverUrl" value="ws://localhost:8000/ws/talk"/>
   <button onclick="connectServer()">Connect</button>
 </div>
 <div class="face-card" id="faceCard">
@@ -136,7 +136,12 @@ function sendText(text){
   setStatus("Thinking…","blue");
   S.ws.send(JSON.stringify({type:"speak",text}));
 }
-window.onload=()=>setTimeout(connectServer,500);
+window.onload=()=>{
+  const h=window.location.host;
+  const proto=window.location.protocol==='https:'?'wss':'ws';
+  document.getElementById('serverUrl').value=proto+'://'+h+'/ws/talk';
+  setTimeout(connectServer,500);
+};
 </script>
 </body>
 </html>
