@@ -95,9 +95,9 @@ function handleMsg(msg){
   if(msg.type==="text_chunk"){
     showResponse(msg.text);
     updateChips(msg.text);
-    speakBrowser(msg.text);
+    // speakBrowser(msg.text);
   }
-  if(msg.type==="done"){ /* audio handled by browser TTS */ }
+  if(msg.type==="done"){ /* done */ }
   if(msg.type==="error"){setStatus("Error: "+msg.msg,"red");resetState();}
 }
 function speakBrowser(text){
