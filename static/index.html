@@ -29,7 +29,7 @@ body{background:#08080f;height:100vh;overflow:hidden;display:flex;flex-direction
 .wbar{width:3px;background:rgba(74,144,217,0.85);border-radius:3px;height:4px;transition:height .05s;}
 .transcript-bubble{position:absolute;top:56px;left:50%;transform:translateX(-50%);z-index:10;max-width:min(320px,85vw);background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.1);color:rgba(255,255,255,0.85);font-size:13px;line-height:1.5;padding:8px 14px;border-radius:14px;display:none;text-align:center;}
 .transcript-bubble.visible{display:block;}
-.response-bubble{position:absolute;bottom:160px;left:50%;transform:translateX(-50%);z-index:10;max-width:min(320px,85vw);background:rgba(74,144,217,0.12);border:1px solid rgba(74,144,217,0.2);color:rgba(255,255,255,0.9);font-size:13px;line-height:1.6;padding:10px 16px;border-radius:14px;display:none;text-align:center;}
+.response-bubble{position:absolute;bottom:180px;left:50%;transform:translateX(-50%);z-index:10;max-width:min(320px,85vw);background:rgba(74,144,217,0.12);border:1px solid rgba(74,144,217,0.2);color:rgba(255,255,255,0.9);font-size:13px;line-height:1.6;padding:10px 16px;border-radius:14px;display:none;text-align:center;}
 .response-bubble.visible{display:block;}
 .chip-bar{padding:10px 14px 16px;background:#08080f;border-top:1px solid rgba(255,255,255,0.05);display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;}
 .chip-bar::-webkit-scrollbar{display:none;}
@@ -137,7 +137,7 @@ function driveMouth(){const bars=[0,1,2,3,4].map(i=>document.getElementById("wb"
 function resetState(){S.speaking=false;document.getElementById("faceCard").classList.remove("speaking");document.getElementById("waveBars").classList.remove("active");document.getElementById("discussBtn").classList.remove("speaking-state","listening");document.getElementById("discussBtn").textContent="Discuss";setStatus("Ready · Tap Discuss","green");[0,1,2,3,4].forEach(i=>{const b=document.getElementById("wb"+i);if(b)b.style.height="4px";});}
 function sendChip(el){if(S.speaking)return;if(!S.ready){setStatus("Connect first — tap ⚙","red");return;}if(S.listening){stopListening();}showTranscript(el.textContent);sendText(el.textContent);}
 function updateChips(t){t=t.toLowerCase();for(const[key,chips]of Object.entries(FOLLOW_UPS)){if(t.includes(key)){const bar=document.getElementById("chipBar");chips.forEach(text=>{if([...bar.querySelectorAll(".chip")].find(c=>c.textContent===text))return;const chip=document.createElement("div");chip.className="chip new";chip.textContent=text;chip.onclick=()=>sendChip(chip);bar.insertBefore(chip,bar.firstChild);});break;}}}
-window.onload=()=>{ setTimeout(connectServer, 500); };
+window.onload=()=>{ document.getElementById("settingsPanel").classList.remove("open"); setTimeout(connectServer, 500); };
 </script>
 </body>
 </html>

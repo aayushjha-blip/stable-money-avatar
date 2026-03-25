@@ -34,6 +34,8 @@ except ImportError:
 
 app = FastAPI(title="Stable Money Avatar Server")
 
+import asyncio
+
 app.add_middleware(CORSMiddleware,
     allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
 
@@ -263,7 +265,7 @@ Key facts:
 - DICGC insured up to Rs 5 lakhs for bank FDs
 - Target: urban Indian professionals aged 25-45
 
-Answer in MAX 2 short sentences only. No bullet points. No links. Be warm and conversational.
+Answer in ONE sentence only. Max 15 words. Be warm.
 User question: {text}
 """
 
@@ -275,13 +277,13 @@ User question: {text}
                         "model": "llama3.2:3b",
                         "prompt": prompt,
                         "stream": False,
-                        "options": {"num_predict": 80, "temperature": 0.7}
+                        "options": {"num_predict": 40, "temperature": 0.7}
                     }).encode("utf-8"),
                     headers={"Content-Type": "application/json"}
                 )
                 with urllib.request.urlopen(req, timeout=120) as resp:
                     data = json.loads(resp.read().decode("utf-8"))
-                answer = data.get("response", "").strip() or "Sorry, I could not generate a response."
+                answer = data.get("response", "").strip().strip('"') or "Sorry, I could not generate a response."
             except Exception as e:
                 answer = f"Sorry, Ollama failed: {str(e)}"
 
@@ -311,6 +313,21 @@ User question: {text}
             await ws.send_json({"type": "error", "msg": str(e)})
         except:
             pass
+
+
+@app.post("/upload/avatar")
+async def upload_avatar(file: UploadFile = File(...)):
+    contents = await file.read()
+    with open(AVATAR_IMG, "wb") as f:
+        f.write(contents)
+    return {"status": "ok", "message": "Avatar photo saved"}
+
+@app.post("/upload/voice")
+async def upload_voice(file: UploadFile = File(...)):
+    contents = await file.read()
+    with open(VOICE_SAMPLE, "wb") as f:
+        f.write(contents)
+    return {"status": "ok", "message": "Voice sample saved — cloning active"}
 
 @app.get("/health")
 def health():
