@@ -100,8 +100,33 @@ function resetState(){
 }
 function startDiscuss(){
   if(!S.ready){connectServer();return;}
-  const q=prompt("Ask me anything about Stable Money:");
-  if(q&&q.trim())sendText(q.trim());
+  const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+  if(!SR){alert("Speech not supported — use chips below");return;}
+  if(!S.recognition){
+    S.recognition=new SR();
+    S.recognition.lang="en-IN";
+    S.recognition.interimResults=false;
+    S.recognition.onresult=e=>{sendText(e.results[0][0].transcript);};
+    S.recognition.onerror=e=>setStatus("Mic error: "+e.error,"red");
+    S.recognition.onend=()=>{document.getElementById("discussBtn").textContent="Discuss";};
+  }
+  S.recognition.start();
+  document.getElementById("discussBtn").textContent="Listening…";
+  setStatus("Listening…","gold");
+}
+  const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+  if(!SR){alert("Speech not supported — use chips below");return;}
+  if(!S.recognition){
+    S.recognition=new SR();
+    S.recognition.lang="en-IN";
+    S.recognition.interimResults=false;
+    S.recognition.onresult=e=>{sendText(e.results[0][0].transcript);};
+    S.recognition.onerror=e=>setStatus("Mic error: "+e.error,"red");
+    S.recognition.onend=()=>{document.getElementById("discussBtn").textContent="Discuss";};
+  }
+  S.recognition.start();
+  document.getElementById("discussBtn").textContent="Listening…";
+  setStatus("Listening…","gold");
 }
 function sendText(text){
   if(!S.ws||!S.ready)return;
