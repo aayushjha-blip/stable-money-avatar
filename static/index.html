@@ -90,6 +90,8 @@ function showResponse(text){const el=document.getElementById("responseBubble");e
 function hideResponse(){document.getElementById("responseBubble").classList.remove("visible");}
 function connectServer(){const url=document.getElementById("serverUrl").value.trim();document.getElementById("settingsPanel").classList.remove("open");setStatus("Connecting…","gold");try{S.ws=new WebSocket(url);S.ws.onopen=()=>{S.ws.send(JSON.stringify({type:"config",system_prompt:"You are a friendly Stable Money advisor."}));S.ready=true;setStatus("Ready · Tap Discuss","green");navigator.mediaDevices.getUserMedia({audio:true}).then(s=>{s.getTracks().forEach(t=>t.stop());}).catch(()=>{});};S.ws.onmessage=e=>handleMsg(JSON.parse(e.data));S.ws.onerror=()=>{setStatus("Connection failed","red");S.ready=false;};S.ws.onclose=()=>{setStatus("Disconnected","red");S.ready=false;};}catch(err){setStatus("Error: "+err.message,"red");}}
 function handleMsg(msg){
+  if(msg.type==="audio"){playAudio(msg.data,msg.format);return;}
+  if(msg.type==="video"){playVideo(msg.data);return;}
   if(msg.type==="text_chunk"){
     showResponse(msg.text);
     updateChips(msg.text);
@@ -134,6 +136,18 @@ function stopListening(){S.listening=false;if(S.recognition)try{S.recognition.st
 function sendText(text){if(!S.ws||!S.ready)return;S.speaking=true;S.transcript="";hideResponse();document.getElementById("discussBtn").classList.add("speaking-state");document.getElementById("discussBtn").textContent="Thinking…";setStatus("Thinking…","blue");S.ws.send(JSON.stringify({type:"speak",text}));}
 function playAudio(b64,fmt){const bytes=Uint8Array.from(atob(b64),c=>c.charCodeAt(0));const blob=new Blob([bytes],{type:"audio/"+fmt});const url=URL.createObjectURL(blob);const audio=new Audio(url);if(!S.audioCtx)S.audioCtx=new AudioContext();const src=S.audioCtx.createMediaElementSource(audio);S.analyser=S.audioCtx.createAnalyser();S.analyser.fftSize=256;src.connect(S.analyser);S.analyser.connect(S.audioCtx.destination);audio.onplay=()=>{document.getElementById("faceCard").classList.add("speaking");document.getElementById("waveBars").classList.add("active");document.getElementById("discussBtn").classList.add("speaking-state");document.getElementById("discussBtn").textContent="Speaking…";setStatus("Speaking…","blue");driveMouth();};audio.onended=()=>{cancelAnimationFrame(S.mouthId);resetState();};audio.play().catch(()=>resetState());}
 function driveMouth(){const bars=[0,1,2,3,4].map(i=>document.getElementById("wb"+i));if(!S.analyser)return;const buf=new Uint8Array(S.analyser.frequencyBinCount);function frame(){S.mouthId=requestAnimationFrame(frame);S.analyser.getByteFrequencyData(buf);const lo=Math.floor(buf.length*0.02),hi=Math.floor(buf.length*0.15);let sum=0;for(let i=lo;i<hi;i++)sum+=buf[i];const s=(sum/(hi-lo))/255;const h=[6+s*14,8+s*20,10+s*26,8+s*20,6+s*14];bars.forEach((b,i)=>{if(b)b.style.height=h[i]+"px";});}frame();}
+function playVideo(b64){
+  const bytes=Uint8Array.from(atob(b64),c=>c.charCodeAt(0));
+  const blob=new Blob([bytes],{type:"video/mp4"});
+  const url=URL.createObjectURL(blob);
+  const faceCard=document.getElementById("faceCard");
+  let vid=document.getElementById("lipSyncVideo");
+  if(!vid){vid=document.createElement("video");vid.id="lipSyncVideo";vid.style="width:100%;height:100%;object-fit:cover;border-radius:inherit;position:absolute;top:0;left:0;";faceCard.appendChild(vid);}
+  vid.src=url;
+  vid.onplay=()=>{document.getElementById("faceCard").classList.add("speaking");document.getElementById("waveBars").classList.add("active");document.getElementById("discussBtn").textContent="Speaking…";setStatus("Speaking…","blue");};
+  vid.onended=()=>{vid.remove();resetState();};
+  vid.play().catch(()=>resetState());
+}
 function resetState(){S.speaking=false;document.getElementById("faceCard").classList.remove("speaking");document.getElementById("waveBars").classList.remove("active");document.getElementById("discussBtn").classList.remove("speaking-state","listening");document.getElementById("discussBtn").textContent="Discuss";setStatus("Ready · Tap Discuss","green");[0,1,2,3,4].forEach(i=>{const b=document.getElementById("wb"+i);if(b)b.style.height="4px";});}
 function sendChip(el){if(S.speaking)return;if(!S.ready){setStatus("Connect first — tap ⚙","red");return;}if(S.listening){stopListening();}showTranscript(el.textContent);sendText(el.textContent);}
 function updateChips(t){t=t.toLowerCase();for(const[key,chips]of Object.entries(FOLLOW_UPS)){if(t.includes(key)){const bar=document.getElementById("chipBar");chips.forEach(text=>{if([...bar.querySelectorAll(".chip")].find(c=>c.textContent===text))return;const chip=document.createElement("div");chip.className="chip new";chip.textContent=text;chip.onclick=()=>sendChip(chip);bar.insertBefore(chip,bar.firstChild);});break;}}}
