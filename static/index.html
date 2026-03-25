@@ -3,155 +3,245 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>Stable Money — AI Advisor</title>
+<title>Stable Money · Aayush</title>
 <style>
-*{box-sizing:border-box;margin:0;padding:0;font-family:'Segoe UI',system-ui,sans-serif;}
-body{background:#08080f;height:100vh;overflow:hidden;display:flex;flex-direction:column;}
-.face-screen{flex:1;position:relative;overflow:hidden;display:flex;align-items:center;justify-content:center;}
-.glow{position:absolute;inset:0;background:radial-gradient(ellipse 60% 70% at 50% 40%,rgba(74,144,217,0.08) 0%,transparent 70%);pointer-events:none;z-index:0;}
-.face-card{position:relative;z-index:1;width:min(360px,88vw);height:min(500px,72vh);border-radius:28px;overflow:hidden;border:1px solid rgba(255,255,255,0.07);transition:box-shadow 0.3s;}
-.face-card img{width:100%;height:100%;object-fit:cover;object-position:center 5%;display:block;}
-.face-card::after{content:"";position:absolute;inset:0;background:linear-gradient(transparent 38%,rgba(8,8,15,0.97) 100%);border-radius:28px;pointer-events:none;}
-.face-card.speaking{box-shadow:0 0 0 3px rgba(74,144,217,0.6),0 0 50px rgba(74,144,217,0.15);}
-.face-info{position:absolute;bottom:88px;left:0;right:0;z-index:3;text-align:center;padding:0 20px;}
-.face-name{font-size:19px;font-weight:600;color:#fff;letter-spacing:-0.2px;}
-.face-sub{font-size:12px;color:rgba(255,255,255,0.38);margin-top:4px;}
-.discuss-btn{position:absolute;bottom:22px;left:50%;transform:translateX(-50%);z-index:3;background:#4A90D9;color:#fff;font-size:14px;font-weight:600;padding:12px 40px;border-radius:50px;border:none;cursor:pointer;box-shadow:0 4px 24px rgba(74,144,217,0.4);transition:all 0.2s;white-space:nowrap;}
-.discuss-btn:hover{transform:translateX(-50%) scale(1.04);}
-.discuss-btn.listening{background:#E74C3C;box-shadow:0 4px 24px rgba(231,76,60,0.45);animation:mpulse 1s infinite;}
-.discuss-btn.speaking-state{background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.12);color:rgba(255,255,255,0.5);box-shadow:none;cursor:default;}
-@keyframes mpulse{0%,100%{transform:translateX(-50%) scale(1)}50%{transform:translateX(-50%) scale(1.06)}}
-.status-pill{position:absolute;top:16px;left:50%;transform:translateX(-50%);z-index:10;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);color:rgba(255,255,255,0.6);font-size:11.5px;font-weight:500;padding:5px 14px;border-radius:20px;display:flex;align-items:center;gap:6px;white-space:nowrap;}
-.sdot{width:5px;height:5px;border-radius:50%;background:#27AE60;animation:sp 2s infinite;}
-@keyframes sp{0%,100%{opacity:1}50%{opacity:0.3}}
-.wave-bars{position:absolute;bottom:22px;left:50%;transform:translateX(-50%);z-index:3;display:none;gap:3px;align-items:flex-end;height:28px;}
-.wave-bars.active{display:flex;}
-.wbar{width:3px;background:rgba(74,144,217,0.85);border-radius:3px;height:4px;transition:height .05s;}
-.transcript-bubble{position:absolute;top:56px;left:50%;transform:translateX(-50%);z-index:10;max-width:min(320px,85vw);background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.1);color:rgba(255,255,255,0.85);font-size:13px;line-height:1.5;padding:8px 14px;border-radius:14px;display:none;text-align:center;}
-.transcript-bubble.visible{display:block;}
-.response-bubble{position:absolute;bottom:180px;left:50%;transform:translateX(-50%);z-index:10;max-width:min(320px,85vw);background:rgba(74,144,217,0.12);border:1px solid rgba(74,144,217,0.2);color:rgba(255,255,255,0.9);font-size:13px;line-height:1.6;padding:10px 16px;border-radius:14px;display:none;text-align:center;}
-.response-bubble.visible{display:block;}
-.chip-bar{padding:10px 14px 16px;background:#08080f;border-top:1px solid rgba(255,255,255,0.05);display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;}
-.chip-bar::-webkit-scrollbar{display:none;}
-.chip{flex-shrink:0;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.09);color:rgba(255,255,255,0.65);font-size:12px;padding:7px 14px;border-radius:18px;cursor:pointer;transition:all 0.18s;white-space:nowrap;}
-.chip:hover{background:rgba(74,144,217,0.18);border-color:rgba(74,144,217,0.35);color:#fff;}
-.chip.new{border-color:rgba(74,144,217,0.35);color:rgba(255,255,255,0.8);}
-.settings-btn{position:absolute;top:16px;right:16px;z-index:10;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);color:rgba(255,255,255,0.5);font-size:12px;padding:5px 12px;border-radius:16px;cursor:pointer;}
-.settings-panel{position:absolute;top:48px;right:16px;z-index:20;background:#12121a;border:1px solid rgba(255,255,255,0.12);border-radius:16px;padding:16px;width:260px;display:none;}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:#0a0a0f;color:#fff;font-family:-apple-system,sans-serif;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;}
+.status-bar{position:fixed;top:16px;left:50%;transform:translateX(-50%);background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.12);border-radius:20px;padding:6px 16px;font-size:13px;display:flex;align-items:center;gap:8px;}
+.status-dot{width:8px;height:8px;border-radius:50%;background:#666;}
+.status-dot.green{background:#4ade80;}
+.status-dot.gold{background:#fbbf24;}
+.status-dot.blue{background:#60a5fa;}
+.status-dot.red{background:#f87171;}
+.settings-btn{position:fixed;top:16px;right:16px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.12);border-radius:20px;padding:6px 14px;font-size:13px;cursor:pointer;color:#fff;}
+.settings-panel{position:fixed;top:56px;right:16px;background:#1a1a2e;border:1px solid rgba(255,255,255,0.15);border-radius:12px;padding:16px;width:300px;display:none;z-index:100;}
 .settings-panel.open{display:block;}
-.settings-panel label{font-size:11px;color:rgba(255,255,255,0.4);display:block;margin-bottom:4px;margin-top:12px;}
-.settings-panel label:first-child{margin-top:0;}
-.settings-panel input{width:100%;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);border-radius:8px;padding:7px 10px;font-size:13px;color:#fff;outline:none;}
-.settings-panel button{margin-top:12px;width:100%;background:#4A90D9;color:#fff;border:none;border-radius:8px;padding:8px;font-size:13px;font-weight:600;cursor:pointer;}
+.settings-panel input{width:100%;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.2);border-radius:8px;padding:8px;color:#fff;font-size:13px;margin:8px 0;}
+.settings-panel button{width:100%;background:#4a90d9;border:none;border-radius:8px;padding:8px;color:#fff;cursor:pointer;font-size:14px;}
+.face-card{width:320px;height:420px;background:linear-gradient(160deg,#1a1a2e,#0f0f1a);border:1px solid rgba(255,255,255,0.08);border-radius:24px;display:flex;flex-direction:column;align-items:center;justify-content:center;position:relative;overflow:hidden;margin-bottom:16px;}
+.face-card.speaking{box-shadow:0 0 0 2px rgba(74,144,217,0.6),0 0 40px rgba(74,144,217,0.15);}
+#avatarSvg{width:220px;height:260px;}
+.name-block{text-align:center;margin-top:8px;}
+.name-block h2{font-size:22px;font-weight:600;}
+.name-block p{font-size:14px;color:rgba(255,255,255,0.5);margin-top:2px;}
+.response-bubble{position:absolute;top:12px;left:12px;right:12px;background:rgba(0,0,0,0.6);border:1px solid rgba(255,255,255,0.1);border-radius:12px;padding:10px 12px;font-size:13px;line-height:1.5;display:none;max-height:100px;overflow:hidden;}
+.discuss-btn{background:linear-gradient(135deg,#4a90d9,#357abd);border:none;border-radius:24px;padding:14px 48px;font-size:17px;font-weight:600;color:#fff;cursor:pointer;margin-bottom:20px;}
+.discuss-btn:disabled{opacity:0.5;cursor:default;}
+.chips{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;padding:0 16px;max-width:500px;}
+.chip{background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.12);border-radius:20px;padding:8px 14px;font-size:13px;cursor:pointer;transition:background 0.2s;}
+.chip:hover{background:rgba(255,255,255,0.12);}
 </style>
 </head>
 <body>
-<div class="face-screen">
-<div class="glow"></div>
-<div class="status-pill"><div class="sdot" id="sdot"></div><span id="statusText">Connecting…</span></div>
+
+<div class="status-bar">
+  <div class="status-dot" id="statusDot"></div>
+  <span id="statusText">Connecting…</span>
+</div>
+
 <button class="settings-btn" onclick="toggleSettings()">⚙ Settings</button>
 <div class="settings-panel" id="settingsPanel">
-<label>Agent name</label>
-<input id="agentNameInput" value="Aayush" oninput="updateName()"/>
-<label>Server URL</label>
-<input id="serverUrl" value="ws://localhost:8000/ws/talk"/>
-<button onclick="connectServer()">Connect</button>
+  <div style="font-size:13px;margin-bottom:8px;color:rgba(255,255,255,0.6);">WebSocket URL</div>
+  <input type="text" id="serverUrl" value="ws://localhost:8000/ws/talk" placeholder="wss://...ngrok.../ws/talk"/>
+  <button onclick="connectServer()">Connect</button>
 </div>
-<div class="transcript-bubble" id="transcriptBubble"></div>
-<div class="response-bubble" id="responseBubble"></div>
+
 <div class="face-card" id="faceCard">
-<img src="/avatar.jpg" alt="Avatar" onerror="this.style.display='none'"/>
-<div class="face-info">
-<div class="face-name" id="agentName">Aayush</div>
-<div class="face-sub">Stable Money · Fixed Income Advisor</div>
+  <div class="response-bubble" id="responseBubble"></div>
+
+  <!-- SVG Animated Avatar -->
+  <svg id="avatarSvg" viewBox="0 0 220 260" xmlns="http://www.w3.org/2000/svg">
+    <!-- Neck -->
+    <rect x="90" y="200" width="40" height="30" rx="8" fill="#f5c5a3"/>
+    <!-- Head -->
+    <ellipse id="head" cx="110" cy="130" rx="72" ry="85" fill="#f5c5a3"/>
+    <!-- Hair -->
+    <ellipse cx="110" cy="60" rx="72" ry="38" fill="#2c1810"/>
+    <rect x="38" y="60" width="18" height="60" rx="9" fill="#2c1810"/>
+    <rect x="164" y="60" width="18" height="60" rx="9" fill="#2c1810"/>
+    <!-- Eyebrows -->
+    <path d="M72 105 Q85 98 98 105" stroke="#2c1810" stroke-width="3.5" fill="none" stroke-linecap="round"/>
+    <path d="M122 105 Q135 98 148 105" stroke="#2c1810" stroke-width="3.5" fill="none" stroke-linecap="round"/>
+    <!-- Eyes -->
+    <g id="leftEye">
+      <ellipse cx="85" cy="120" rx="13" ry="13" fill="white"/>
+      <ellipse cx="85" cy="120" rx="8" ry="8" fill="#3d2b1f"/>
+      <ellipse cx="85" cy="120" rx="4" ry="4" fill="#1a0f0a"/>
+      <ellipse cx="88" cy="117" rx="2" ry="2" fill="white"/>
+      <!-- Eyelid (for blinking) -->
+      <ellipse id="leftLid" cx="85" cy="120" rx="13" ry="0" fill="#f5c5a3"/>
+    </g>
+    <g id="rightEye">
+      <ellipse cx="135" cy="120" rx="13" ry="13" fill="white"/>
+      <ellipse cx="135" cy="120" rx="8" ry="8" fill="#3d2b1f"/>
+      <ellipse cx="135" cy="120" rx="4" ry="4" fill="#1a0f0a"/>
+      <ellipse cx="138" cy="117" rx="2" ry="2" fill="white"/>
+      <!-- Eyelid (for blinking) -->
+      <ellipse id="rightLid" cx="135" cy="120" rx="13" ry="0" fill="#f5c5a3"/>
+    </g>
+    <!-- Nose -->
+    <path d="M105 135 Q110 148 115 135" stroke="#d4956a" stroke-width="2" fill="none" stroke-linecap="round"/>
+    <ellipse cx="104" cy="150" rx="4" ry="3" fill="#d4956a" opacity="0.5"/>
+    <ellipse cx="116" cy="150" rx="4" ry="3" fill="#d4956a" opacity="0.5"/>
+    <!-- Mouth -->
+    <g id="mouth">
+      <!-- Upper lip -->
+      <path d="M88 168 Q98 163 110 165 Q122 163 132 168" stroke="#c47a5a" stroke-width="2" fill="none" stroke-linecap="round"/>
+      <!-- Mouth opening (animated) -->
+      <ellipse id="mouthOpen" cx="110" cy="170" rx="18" ry="0" fill="#8b2020"/>
+      <!-- Lower lip -->
+      <path id="lowerLip" d="M88 170 Q110 176 132 170" stroke="#c47a5a" stroke-width="2" fill="#e8967a" stroke-linecap="round"/>
+    </g>
+    <!-- Ears -->
+    <ellipse cx="38" cy="135" rx="10" ry="14" fill="#f5c5a3"/>
+    <ellipse cx="182" cy="135" rx="10" ry="14" fill="#f5c5a3"/>
+    <!-- Shoulders -->
+    <path d="M20 260 Q40 220 90 215 Q110 212 130 215 Q180 220 200 260" fill="#2563eb"/>
+    <!-- Shirt collar -->
+    <path d="M90 215 Q110 230 130 215" stroke="white" stroke-width="2" fill="none"/>
+  </svg>
+
+  <div class="name-block">
+    <h2>Aayush</h2>
+    <p>Stable Money · Fixed Income Advisor</p>
+  </div>
 </div>
-<button class="discuss-btn" id="discussBtn" onclick="handleDiscuss()">Discuss</button>
-<div class="wave-bars" id="waveBars">
-<div class="wbar" id="wb0"></div><div class="wbar" id="wb1"></div><div class="wbar" id="wb2"></div><div class="wbar" id="wb3"></div><div class="wbar" id="wb4"></div>
+
+<button class="discuss-btn" id="discussBtn" onclick="startDiscuss()">Discuss</button>
+
+<div class="chips">
+  <div class="chip" onclick="sendText('What is Stable Money?')">What is Stable Money?</div>
+  <div class="chip" onclick="sendText('How safe are FDs?')">How safe are FDs?</div>
+  <div class="chip" onclick="sendText('Expected returns?')">Expected returns?</div>
+  <div class="chip" onclick="sendText('Tell me about Sukoon')">Tell me about Sukoon</div>
+  <div class="chip" onclick="sendText('Better than bank FDs?')">Better than bank FDs?</div>
+  <div class="chip" onclick="sendText('Min investment?')">Min investment?</div>
 </div>
-</div>
-</div>
-<div class="chip-bar" id="chipBar">
-<div class="chip" onclick="sendChip(this)">What is Stable Money?</div>
-<div class="chip" onclick="sendChip(this)">How safe are FDs?</div>
-<div class="chip" onclick="sendChip(this)">Expected returns?</div>
-<div class="chip" onclick="sendChip(this)">Tell me about Sukoon</div>
-<div class="chip" onclick="sendChip(this)">Better than bank FDs?</div>
-<div class="chip" onclick="sendChip(this)">Min investment?</div>
-</div>
+
 <script>
-const S={ws:null,ready:false,listening:false,speaking:false,continuous:false,recognition:null,transcript:"",audioCtx:null,analyser:null,mouthId:null};
-const FOLLOW_UPS={"stable money":["How do I sign up?","Is it SEBI regulated?","What FDs are available?"],"fd":["Which NBFC gives best returns?","Is my money locked?","What about tax on FD?"],"safe":["What is DICGC insurance?","What if NBFC fails?","How is money protected?"],"return":["How is interest paid?","Monthly or yearly payout?","Can I reinvest returns?"],"sukoon":["Is Sukoon better than savings?","Can I withdraw anytime?","Minimum for Sukoon?"],"invest":["How do I start?","What documents needed?","How long does KYC take?"],"bank":["Better than FD in SBI?","How much better are returns?","Is process fully online?"]};
-function updateName(){document.getElementById("agentName").textContent=document.getElementById("agentNameInput").value||"Aayush";}
+const S={ws:null,ready:false,speaking:false,audioCtx:null,analyser:null,animId:null,blinkId:null};
+
 function toggleSettings(){document.getElementById("settingsPanel").classList.toggle("open");}
-function setStatus(text,color="green"){document.getElementById("statusText").textContent=text;const c={green:"#27AE60",blue:"#4A90D9",red:"#E74C3C",gold:"#C9962A"};document.getElementById("sdot").style.background=c[color]||color;}
-function showTranscript(text){const el=document.getElementById("transcriptBubble");el.textContent="🎙 "+text;el.classList.add("visible");setTimeout(()=>el.classList.remove("visible"),3000);}
-function showResponse(text){const el=document.getElementById("responseBubble");el.textContent=text;el.classList.add("visible");}
-function hideResponse(){document.getElementById("responseBubble").classList.remove("visible");}
-function connectServer(){const url=document.getElementById("serverUrl").value.trim();document.getElementById("settingsPanel").classList.remove("open");setStatus("Connecting…","gold");try{S.ws=new WebSocket(url);S.ws.onopen=()=>{S.ws.send(JSON.stringify({type:"config",system_prompt:"You are a friendly Stable Money advisor."}));S.ready=true;setStatus("Ready · Tap Discuss","green");navigator.mediaDevices.getUserMedia({audio:true}).then(s=>{s.getTracks().forEach(t=>t.stop());}).catch(()=>{});};S.ws.onmessage=e=>handleMsg(JSON.parse(e.data));S.ws.onerror=()=>{setStatus("Connection failed","red");S.ready=false;};S.ws.onclose=()=>{setStatus("Disconnected","red");S.ready=false;};}catch(err){setStatus("Error: "+err.message,"red");}}
-function handleMsg(msg){
-  if(msg.type==="audio"){playAudio(msg.data,msg.format);return;}
-  if(msg.type==="video"){playVideo(msg.data);return;}
-  if(msg.type==="text_chunk"){
-    showResponse(msg.text);
-    updateChips(msg.text);
-    // speakBrowser(msg.text);
-  }
-  if(msg.type==="done"){ /* done */ }
-  if(msg.type==="error"){setStatus("Error: "+msg.msg,"red");resetState();}
+
+function setStatus(txt,color){
+  document.getElementById("statusText").textContent=txt;
+  const d=document.getElementById("statusDot");
+  d.className="status-dot"+(color?" "+color:"");
 }
-function speakBrowser(text){
-  window.speechSynthesis.cancel();
-  const utt=new SpeechSynthesisUtterance(text);
-  utt.rate=1.05; utt.pitch=1.0; utt.volume=1.0;
-  const voices=window.speechSynthesis.getVoices();
-  const preferred=voices.find(v=>v.name.includes("Samantha")||v.name.includes("Karen")||v.name.includes("Daniel")||v.lang==="en-IN");
-  if(preferred)utt.voice=preferred;
+
+function connectServer(){
+  const url=document.getElementById("serverUrl").value.trim();
+  document.getElementById("settingsPanel").classList.remove("open");
+  setStatus("Connecting…","gold");
+  try{
+    S.ws=new WebSocket(url);
+    S.ws.onopen=()=>{
+      S.ws.send(JSON.stringify({type:"config"}));
+      S.ready=true;
+      setStatus("Ready · Tap Discuss","green");
+      startBlinking();
+    };
+    S.ws.onmessage=e=>handleMsg(JSON.parse(e.data));
+    S.ws.onerror=()=>{setStatus("Connection failed","red");S.ready=false;};
+    S.ws.onclose=()=>{setStatus("Disconnected","red");S.ready=false;};
+  }catch(err){setStatus("Error: "+err.message,"red");}
+}
+
+function handleMsg(msg){
+  if(msg.type==="text_chunk"){
+    const b=document.getElementById("responseBubble");
+    b.textContent=msg.text;
+    b.style.display="block";
+  }
+  if(msg.type==="audio"){playAudio(msg.data,msg.format);}
+  if(msg.type==="done"){if(!S.speaking)resetState();}
+  if(msg.type==="error"){setStatus("Error","red");resetState();}
+}
+
+function playAudio(b64,fmt){
+  const bytes=Uint8Array.from(atob(b64),c=>c.charCodeAt(0));
+  const blob=new Blob([bytes],{type:"audio/"+fmt});
+  const url=URL.createObjectURL(blob);
+  const audio=new Audio(url);
+  if(!S.audioCtx)S.audioCtx=new AudioContext();
+  const src=S.audioCtx.createMediaElementSource(audio);
+  S.analyser=S.audioCtx.createAnalyser();
+  S.analyser.fftSize=256;
+  src.connect(S.analyser);
+  S.analyser.connect(S.audioCtx.destination);
+  S.speaking=true;
   document.getElementById("faceCard").classList.add("speaking");
-  document.getElementById("waveBars").classList.add("active");
-  document.getElementById("discussBtn").classList.add("speaking-state");
   document.getElementById("discussBtn").textContent="Speaking…";
   setStatus("Speaking…","blue");
-  utt.onend=()=>{ resetState(); if(S.continuous)startListening(); };
-  window.speechSynthesis.speak(utt);
-}
-function handleDiscuss(){
-  if(!S.ready){setStatus("Connect first — tap ⚙","red");return;}
-  if(S.speaking){
-    window.speechSynthesis.cancel();
+  driveMouth();
+  audio.onended=()=>{
+    cancelAnimationFrame(S.animId);
+    setMouth(0);
     resetState();
-    S.continuous=false;
-    return;
-  }
-  if(S.listening){
-    stopListening();
-    S.continuous=false;
-    return;
-  }
-  S.continuous=true;
-  startListening();
+  };
+  audio.play().catch(()=>resetState());
 }
-function startListening(){const SR=window.SpeechRecognition||window.webkitSpeechRecognition;if(!SR){setStatus("Use Chrome for mic","red");return;}S.recognition=new SR();S.recognition.continuous=false;S.recognition.interimResults=true;S.recognition.lang="en-IN";S.recognition.onstart=()=>{S.listening=true;document.getElementById("discussBtn").classList.add("listening");document.getElementById("discussBtn").textContent="Listening…";setStatus("Listening…","red");};S.recognition.onresult=e=>{let final="",interim="";for(let i=e.resultIndex;i<e.results.length;i++){e.results[i].isFinal?(final+=e.results[i][0].transcript):(interim+=e.results[i][0].transcript);}if(final)S.transcript=final;showTranscript(final||interim);};S.recognition.onend=()=>{stopListening();if(S.transcript)sendText(S.transcript);};S.recognition.onerror=()=>{stopListening();setStatus("Mic error","red");};S.recognition.start();}
-function stopListening(){S.listening=false;if(S.recognition)try{S.recognition.stop();}catch{}document.getElementById("discussBtn").classList.remove("listening");document.getElementById("discussBtn").textContent="Discuss";}
-function sendText(text){if(!S.ws||!S.ready)return;S.speaking=true;S.transcript="";hideResponse();document.getElementById("discussBtn").classList.add("speaking-state");document.getElementById("discussBtn").textContent="Thinking…";setStatus("Thinking…","blue");S.ws.send(JSON.stringify({type:"speak",text}));}
-function playAudio(b64,fmt){const bytes=Uint8Array.from(atob(b64),c=>c.charCodeAt(0));const blob=new Blob([bytes],{type:"audio/"+fmt});const url=URL.createObjectURL(blob);const audio=new Audio(url);if(!S.audioCtx)S.audioCtx=new AudioContext();const src=S.audioCtx.createMediaElementSource(audio);S.analyser=S.audioCtx.createAnalyser();S.analyser.fftSize=256;src.connect(S.analyser);S.analyser.connect(S.audioCtx.destination);audio.onplay=()=>{document.getElementById("faceCard").classList.add("speaking");document.getElementById("waveBars").classList.add("active");document.getElementById("discussBtn").classList.add("speaking-state");document.getElementById("discussBtn").textContent="Speaking…";setStatus("Speaking…","blue");driveMouth();};audio.onended=()=>{cancelAnimationFrame(S.mouthId);resetState();};audio.play().catch(()=>resetState());}
-function driveMouth(){const bars=[0,1,2,3,4].map(i=>document.getElementById("wb"+i));if(!S.analyser)return;const buf=new Uint8Array(S.analyser.frequencyBinCount);function frame(){S.mouthId=requestAnimationFrame(frame);S.analyser.getByteFrequencyData(buf);const lo=Math.floor(buf.length*0.02),hi=Math.floor(buf.length*0.15);let sum=0;for(let i=lo;i<hi;i++)sum+=buf[i];const s=(sum/(hi-lo))/255;const h=[6+s*14,8+s*20,10+s*26,8+s*20,6+s*14];bars.forEach((b,i)=>{if(b)b.style.height=h[i]+"px";});}frame();}
-function playVideo(b64){
-  const bytes=Uint8Array.from(atob(b64),c=>c.charCodeAt(0));
-  const blob=new Blob([bytes],{type:"video/mp4"});
-  const url=URL.createObjectURL(blob);
-  const faceCard=document.getElementById("faceCard");
-  let vid=document.getElementById("lipSyncVideo");
-  if(!vid){vid=document.createElement("video");vid.id="lipSyncVideo";vid.style="width:100%;height:100%;object-fit:cover;border-radius:inherit;position:absolute;top:0;left:0;";faceCard.appendChild(vid);}
-  vid.src=url;
-  vid.onplay=()=>{document.getElementById("faceCard").classList.add("speaking");document.getElementById("waveBars").classList.add("active");document.getElementById("discussBtn").textContent="Speaking…";setStatus("Speaking…","blue");};
-  vid.onended=()=>{vid.remove();resetState();};
-  vid.play().catch(()=>resetState());
+
+function driveMouth(){
+  if(!S.analyser)return;
+  const data=new Uint8Array(S.analyser.frequencyBinCount);
+  S.analyser.getByteFrequencyData(data);
+  const vol=data.slice(0,12).reduce((a,b)=>a+b,0)/12/255;
+  setMouth(vol);
+  S.animId=requestAnimationFrame(driveMouth);
 }
-function resetState(){S.speaking=false;document.getElementById("faceCard").classList.remove("speaking");document.getElementById("waveBars").classList.remove("active");document.getElementById("discussBtn").classList.remove("speaking-state","listening");document.getElementById("discussBtn").textContent="Discuss";setStatus("Ready · Tap Discuss","green");[0,1,2,3,4].forEach(i=>{const b=document.getElementById("wb"+i);if(b)b.style.height="4px";});}
-function sendChip(el){if(S.speaking)return;if(!S.ready){setStatus("Connect first — tap ⚙","red");return;}if(S.listening){stopListening();}showTranscript(el.textContent);sendText(el.textContent);}
-function updateChips(t){t=t.toLowerCase();for(const[key,chips]of Object.entries(FOLLOW_UPS)){if(t.includes(key)){const bar=document.getElementById("chipBar");chips.forEach(text=>{if([...bar.querySelectorAll(".chip")].find(c=>c.textContent===text))return;const chip=document.createElement("div");chip.className="chip new";chip.textContent=text;chip.onclick=()=>sendChip(chip);bar.insertBefore(chip,bar.firstChild);});break;}}}
-window.onload=()=>{ document.getElementById("settingsPanel").classList.remove("open"); setTimeout(connectServer, 500); };
+
+function setMouth(vol){
+  const opening=Math.min(vol*2.5,1);
+  const ry=opening*14;
+  document.getElementById("mouthOpen").setAttribute("ry",ry);
+  document.getElementById("lowerLip").setAttribute("d",
+    `M88 170 Q110 ${170+ry*0.8} 132 170`
+  );
+}
+
+function startBlinking(){
+  function blink(){
+    const dur=150;
+    let t=0;
+    const iv=setInterval(()=>{
+      t+=16;
+      const progress=t<dur/2?t/(dur/2):2-t/(dur/2);
+      const ry=progress*13;
+      document.getElementById("leftLid").setAttribute("ry",ry);
+      document.getElementById("rightLid").setAttribute("ry",ry);
+      if(t>=dur){clearInterval(iv);}
+    },16);
+    // Next blink in 2-5 seconds
+    S.blinkId=setTimeout(blink,2000+Math.random()*3000);
+  }
+  blink();
+}
+
+function resetState(){
+  S.speaking=false;
+  document.getElementById("faceCard").classList.remove("speaking");
+  document.getElementById("discussBtn").textContent="Discuss";
+  document.getElementById("discussBtn").disabled=false;
+  setStatus("Ready · Tap Discuss","green");
+  setTimeout(()=>{document.getElementById("responseBubble").style.display="none";},3000);
+}
+
+function startDiscuss(){
+  if(!S.ready){connectServer();return;}
+  sendText("What is Stable Money?");
+}
+
+function sendText(text){
+  if(!S.ws||!S.ready)return;
+  S.speaking=true;
+  document.getElementById("discussBtn").disabled=true;
+  document.getElementById("discussBtn").textContent="Thinking…";
+  setStatus("Thinking…","blue");
+  S.ws.send(JSON.stringify({type:"speak",text}));
+}
+
+window.onload=()=>setTimeout(connectServer,500);
 </script>
 </body>
 </html>
