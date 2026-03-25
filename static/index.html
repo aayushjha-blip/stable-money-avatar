@@ -98,7 +98,11 @@ function resetState(){
   setStatus("Ready · Tap Discuss","green");
   setTimeout(()=>{document.getElementById("responseBubble").style.display="none";},3000);
 }
-function startDiscuss(){if(!S.ready){connectServer();return;}}
+function startDiscuss(){
+  if(!S.ready){connectServer();return;}
+  const q=prompt("Ask me anything about Stable Money:");
+  if(q&&q.trim())sendText(q.trim());
+}
 function sendText(text){
   if(!S.ws||!S.ready)return;
   S.speaking=true;
