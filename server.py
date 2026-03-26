@@ -107,14 +107,19 @@ ACRONYMS = {
     "NBFCs": "N B F Cs",
     "SEBI": "S E B I",
     "RBI": "R B I",
-    "FD": "fixed deposit",
-    "FDs": "fixed deposits",
+    # FD/FDs intentionally excluded — LLM already writes "Fixed Deposits (FDs)"
+    # so replacing "FDs" would create "Fixed Deposits (fixed deposits)" double-read
     "SFB": "small finance bank",
     "SFBs": "small finance banks",
 }
 
 def preprocess_tts(text: str) -> str:
     import re
+    # Step 1: "ACRONYM (Full Form)" → keep only Full Form, drop the redundant acronym
+    # e.g. "RBI (Reserve Bank of India)" → "Reserve Bank of India"
+    # e.g. "NBFCs (Non-Banking Financial Companies)" → "Non-Banking Financial Companies"
+    text = re.sub(r'\b[A-Z]{2,7}s?\s*\(([^)]+)\)', r'\1', text)
+    # Step 2: expand any remaining standalone acronyms
     for acronym, expansion in ACRONYMS.items():
         text = re.sub(r'\b' + re.escape(acronym) + r'\b', expansion, text)
     return text
@@ -138,7 +143,7 @@ async def synthesize_speech(text: str) -> bytes:
     import edge_tts
     text = preprocess_tts(text)
     voice = "hi-IN-MadhurNeural" if _detect_hindi(text) else "en-IN-PrabhatNeural"
-    communicate = edge_tts.Communicate(text, voice=voice, rate="-8%", pitch="+0Hz")
+    communicate = edge_tts.Communicate(text, voice=voice, rate="+5%", pitch="+0Hz")
     buf = io.BytesIO()
     async for chunk in communicate.stream():
         if chunk["type"] == "audio":
@@ -297,41 +302,45 @@ async def ws_talk(ws: WebSocket):
             lang = data.get("lang") or ("hi" if _detect_hindi(text) else "en")
 
             if lang == "hi":
-                system_msg = f"""आप Aayush हैं — Stable Money के एक विशेषज्ञ, मिलनसार और भरोसेमंद पुरुष वित्तीय सलाहकार।
+                system_msg = f"""आप Aayush हैं — Stable Money के विशेषज्ञ वित्तीय सलाहकार।
 
-नीचे Stable Money की आधिकारिक जानकारी दी गई है — केवल इसी के आधार पर जवाब दें:
+OFFICIAL KNOWLEDGE BASE:
 {KNOWLEDGE_BASE}
 
-नियम:
-- केवल हिंदी में जवाब दें। एक भी अंग्रेज़ी वाक्य नहीं।
-- 2-3 वाक्यों में स्पष्ट, सटीक और उपयोगी जवाब दें।
-- गर्मजोशी और विश्वास के साथ बोलें — जैसे एक भरोसेमंद दोस्त जो finance जानता हो।
-- अगर जवाब knowledge base में नहीं है, तो कहें: "इस बारे में मुझे और जानकारी लेनी होगी।"
-- जवाब कभी अधूरा न छोड़ें।"""
+सख्त नियम:
+- सिर्फ हिंदी में जवाब दें — कोई अंग्रेज़ी वाक्य नहीं।
+- सीधे सवाल का जवाब दें — "बहुत अच्छा सवाल" जैसी फालतू बातें मत करें।
+- 2-3 छोटे, स्पष्ट वाक्य काफी हैं। लंबा भाषण मत दें।
+- सिर्फ knowledge base में दी गई जानकारी बताएं — कुछ बनाएं नहीं।
+- कभी भी "RBI (Reserve Bank of India)" जैसा न लिखें — acronym और full form दोनों एक साथ नहीं। सिर्फ full form लिखें।
+- जवाब हमेशा पूरा करें, बीच में मत रोकें।
+- अगर जवाब knowledge base में नहीं है तो कहें: इस बारे में मैं team से confirm करके बताऊंगा।"""
             else:
-                system_msg = f"""You are Aayush, a warm, knowledgeable and trustworthy male financial advisor for Stable Money.
+                system_msg = f"""You are Aayush, a sharp and friendly male financial advisor at Stable Money.
 
-Use ONLY the following official knowledge base to answer questions:
+OFFICIAL KNOWLEDGE BASE (use ONLY this — never invent facts):
 {KNOWLEDGE_BASE}
 
-Rules:
-- Reply ONLY in English. Do not mix in Hindi.
-- Give a complete, accurate, helpful answer. Do not cut off mid-sentence.
-- Be conversational and warm — like a trusted friend who knows finance.
-- If something is not in the knowledge base, say: "I'd need to check the latest details on that for you."
-- Never make up numbers, returns, or product features not listed above."""
+STRICT RULES:
+- Answer ONLY in English. Zero Hindi words.
+- Get straight to the point. No "Great question!", no fluff, no repeating the question.
+- Keep it to 2-3 sentences — clear, specific, and useful.
+- Use exact numbers from the knowledge base (e.g. "8% to 9.5%", "Rs 5 lakhs cover").
+- NEVER write an acronym and its full form together like "RBI (Reserve Bank of India)" — pick one. Prefer the full form for clarity.
+- If the answer isn't in the knowledge base, say: "Let me check the latest details on that and get back to you."
+- Always finish your sentence — never trail off mid-answer."""
 
             try:
                 from groq import Groq
                 client = Groq(api_key=os.environ.get("GROQ_API_KEY", ""))
                 completion = client.chat.completions.create(
-                    model="llama-3.3-70b-versatile",
+                    model="llama-3.1-8b-instant",
                     messages=[
                         {"role": "system", "content": system_msg},
                         {"role": "user", "content": text}
                     ],
-                    max_tokens=300,
-                    temperature=0.65,
+                    max_tokens=150,
+                    temperature=0.6,
                 )
                 answer = completion.choices[0].message.content.strip().strip('"') or "Sorry, I could not generate a response."
             except Exception as e:
