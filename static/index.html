@@ -12,53 +12,104 @@ body{background:#0a0a0f;color:#fff;font-family:-apple-system,sans-serif;min-heig
 .dot{width:8px;height:8px;border-radius:50%;background:#666;}
 .dot.green{background:#4ade80;}.dot.gold{background:#fbbf24;}.dot.blue{background:#60a5fa;}.dot.red{background:#f87171;}
 .settings-btn{position:fixed;top:16px;right:16px;z-index:9999;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.12);border-radius:20px;padding:6px 14px;font-size:13px;cursor:pointer;color:#fff;}
-.settings-panel{position:fixed;top:56px;right:16px;z-index:9999;background:#1a1a2e;border:1px solid rgba(255,255,255,0.15);border-radius:12px;padding:16px;width:300px;display:none;z-index:100;}
+.settings-panel{position:fixed;top:56px;right:16px;z-index:9999;background:#1a1a2e;border:1px solid rgba(255,255,255,0.15);border-radius:12px;padding:16px;width:300px;display:none;}
 .settings-panel.open{display:block;}
 .settings-panel input{width:100%;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.2);border-radius:8px;padding:8px;color:#fff;font-size:13px;margin:8px 0;}
 .settings-panel button{width:100%;background:#4a90d9;border:none;border-radius:8px;padding:8px;color:#fff;cursor:pointer;}
-.face-card{width:300px;height:380px;background:#141420;border:1px solid rgba(255,255,255,0.08);border-radius:24px;display:flex;flex-direction:column;align-items:center;justify-content:center;position:relative;gap:8px;}
-.face-card.speaking{box-shadow:0 0 0 2px rgba(74,144,217,0.7),0 0 40px rgba(74,144,217,0.12);}
+
+/* ── Face card — WhatsApp video-call style ── */
+.face-card{width:340px;height:440px;background:#0e0e18;border:1px solid rgba(255,255,255,0.06);border-radius:20px;display:flex;flex-direction:column;align-items:center;position:relative;overflow:hidden;transition:box-shadow 0.3s;}
+.face-card.speaking{box-shadow:0 0 0 2px rgba(74,144,217,0.7),0 0 40px rgba(74,144,217,0.15);}
+
+/* Thinking state: gentle pulsing glow */
+@keyframes thinkPulse{
+  0%,100%{box-shadow:0 0 0 2px rgba(251,191,36,0.4),0 0 20px rgba(251,191,36,0.05);}
+  50%    {box-shadow:0 0 0 2px rgba(251,191,36,0.7),0 0 40px rgba(251,191,36,0.15);}
+}
+.face-card.thinking{animation:thinkPulse 1.8s ease-in-out infinite;}
+
+/* Avatar photo — fills the card like a video call */
+.avatar-photo{width:100%;height:100%;object-fit:cover;object-position:center top;display:block;}
+
+/* Subtle head sway when idle, breathing when speaking */
+@keyframes idleSway{
+  0%,100%{transform:scale(1.04) translate(0,0);}
+  25%    {transform:scale(1.04) translate(1.5px,-1px);}
+  50%    {transform:scale(1.04) translate(-1px,1px);}
+  75%    {transform:scale(1.04) translate(1px,0.5px);}
+}
+@keyframes speakSway{
+  0%,100%{transform:scale(1.04) translate(0,0);}
+  30%    {transform:scale(1.05) translate(1px,-1.5px);}
+  60%    {transform:scale(1.04) translate(-1.5px,0.5px);}
+}
+.avatar-photo{animation:idleSway 6s ease-in-out infinite;}
+.face-card.speaking .avatar-photo{animation:speakSway 2.5s ease-in-out infinite;}
+
+/* Name overlay at bottom like a video call */
+.name-overlay{position:absolute;bottom:0;left:0;right:0;padding:12px 16px;background:linear-gradient(transparent,rgba(0,0,0,0.7));display:flex;align-items:center;justify-content:space-between;}
+.name-overlay h2{font-size:17px;font-weight:600;}
+.name-overlay p{font-size:11px;color:rgba(255,255,255,0.5);}
+
+/* Sound wave visualizer overlaid bottom-right */
+.sound-wave{display:none;align-items:flex-end;gap:3px;height:18px;}
+.face-card.speaking .sound-wave{display:flex;}
+.sound-wave span{width:3px;background:#4ade80;border-radius:2px;animation:wave 0.8s ease-in-out infinite;}
+.sound-wave span:nth-child(1){animation-delay:0s;height:6px;}
+.sound-wave span:nth-child(2){animation-delay:0.1s;height:12px;}
+.sound-wave span:nth-child(3){animation-delay:0.2s;height:18px;}
+.sound-wave span:nth-child(4){animation-delay:0.1s;height:12px;}
+.sound-wave span:nth-child(5){animation-delay:0s;height:6px;}
+@keyframes wave{0%,100%{transform:scaleY(0.4);}50%{transform:scaleY(1);}}
+
+/* ── Response + transcript bubbles (below face card) ── */
 .response-bubble{width:100%;max-width:480px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.12);border-radius:16px;padding:12px 16px;font-size:14px;line-height:1.6;display:none;}
 .transcript{width:100%;max-width:480px;background:rgba(74,144,217,0.1);border:1px solid rgba(74,144,217,0.25);border-radius:12px;padding:8px 14px;font-size:12px;color:rgba(255,255,255,0.6);display:none;}
-.name-block{text-align:center;}
-.name-block h2{font-size:20px;font-weight:700;}
-.name-block p{font-size:12px;color:rgba(255,255,255,0.4);margin-top:2px;}
+
+/* Thinking dots animation inside response bubble */
+@keyframes dotBounce{
+  0%,80%,100%{transform:translateY(0);}
+  40%{transform:translateY(-8px);}
+}
+.thinking-dots{display:inline-flex;gap:4px;padding:4px 0;}
+.thinking-dots span{width:8px;height:8px;border-radius:50%;background:rgba(255,255,255,0.4);animation:dotBounce 1.2s ease-in-out infinite;}
+.thinking-dots span:nth-child(2){animation-delay:0.15s;}
+.thinking-dots span:nth-child(3){animation-delay:0.3s;}
+
 .discuss-btn{background:linear-gradient(135deg,#4a90d9,#357abd);border:none;border-radius:24px;padding:14px 52px;font-size:17px;font-weight:600;color:#fff;cursor:pointer;}
 .discuss-btn:disabled{opacity:0.5;cursor:default;}
 .chips{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;max-width:480px;padding:0 16px;}
 .chip{background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.12);border-radius:20px;padding:8px 14px;font-size:13px;cursor:pointer;}
 .chip:hover{background:rgba(255,255,255,0.13);}
-/* Eye: pivot for blink — JS handles drift+blink together */
-#eyeGroup{transform-box:fill-box;transform-origin:center;}
-/* Mouth: keyframes INCLUDE original SVG translate(78,134) so CSS doesn't discard it */
-@keyframes talking{
-  0%,100%{transform:translate(78px,134px) scaleY(1);}
-  40%    {transform:translate(78px,134px) scaleY(1.8);}
-}
-.face-card.speaking #mouthGroup{
-  animation:talking 0.22s ease-in-out infinite;
-  transform-box:fill-box;
-  transform-origin:54px 13px; /* top-centre of mouth in local SVG coords */
-}
+/* Video playback in face card */
+.avatar-video{position:absolute;top:0;left:0;width:100%;height:100%;object-fit:cover;object-position:center top;z-index:1;display:none;}
+.avatar-video.active{display:block;}
 </style>
 </head>
 <body>
 <div class="status-bar"><div class="dot" id="dot"></div><span id="statusText">Connecting…</span></div>
-<button class="settings-btn" onclick="toggleSettings()">⚙ Settings</button>
+<button class="settings-btn" onclick="toggleSettings()">Settings</button>
 <div class="settings-panel" id="settingsPanel">
   <div style="font-size:13px;color:rgba(255,255,255,0.5);margin-bottom:4px;">WebSocket URL</div>
   <input type="text" id="serverUrl" value="ws://localhost:8000/ws/talk"/>
   <button onclick="connectServer()">Connect</button>
 </div>
 <div class="face-card" id="faceCard">
-  <svg style="width:220px;height:220px;" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 280 280" fill="none" shape-rendering="auto"><metadata xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:dcterms="http://purl.org/dc/terms/"><rdf:RDF><rdf:Description><dc:title>Avataaars</dc:title><dc:creator>Pablo Stanley</dc:creator><dc:source xsi:type="dcterms:URI">https://avataaars.com/</dc:source><dcterms:license xsi:type="dcterms:URI">https://avataaars.com/</dcterms:license><dc:rights>Remix of „Avataaars” (https://avataaars.com/) by „Pablo Stanley”, licensed under „Free for personal and commercial use” (https://avataaars.com/)</dc:rights></rdf:Description></rdf:RDF></metadata><mask id="viewboxMask"><rect width="280" height="280" rx="0" ry="0" x="0" y="0" fill="#fff" /></mask><g mask="url(#viewboxMask)"><g transform="translate(8)"><path d="M132 36a56 56 0 0 0-56 56v6.17A12 12 0 0 0 66 110v14a12 12 0 0 0 10.3 11.88 56.04 56.04 0 0 0 31.7 44.73v18.4h-4a72 72 0 0 0-72 72v9h200v-9a72 72 0 0 0-72-72h-4v-18.39a56.04 56.04 0 0 0 31.7-44.73A12 12 0 0 0 198 124v-14a12 12 0 0 0-10-11.83V92a56 56 0 0 0-56-56Z" fill="#edb98a"/><path d="M108 180.61v8a55.79 55.79 0 0 0 24 5.39c8.59 0 16.73-1.93 24-5.39v-8a55.79 55.79 0 0 1-24 5.39 55.79 55.79 0 0 1-24-5.39Z" fill="#000" fill-opacity=".1"/><g transform="translate(0 170)"><path d="M108 14.7c-15.52 3.68-27.1 10.83-30.77 19.44A72.02 72.02 0 0 0 32 101v9h200v-9a72.02 72.02 0 0 0-45.23-66.86C183.1 25.53 171.52 18.38 156 14.7V32a24 24 0 1 1-48 0V14.7Z" fill="#65c9ff"/><path d="M102 63.34a67.1 67.1 0 0 1-7-2.82V110h7V63.34ZM162 63.34a67.04 67.04 0 0 0 7-2.82V98.5a3.5 3.5 0 1 1-7 0V63.34Z" fill="#F4F4F4"/><path d="M187.62 34.49a71.79 71.79 0 0 1 10.83 5.63C197.11 55.62 167.87 68 132 68c30.93 0 56-13.43 56-30 0-1.19-.13-2.36-.38-3.51ZM76.38 34.49a16.48 16.48 0 0 0-.38 3.5c0 16.58 25.07 30 56 30-35.87 0-65.1-12.38-66.45-27.88a71.79 71.79 0 0 1 10.83-5.63Z" fill="#000" fill-opacity=".16"/></g><g id="mouthGroup" transform="translate(78 134)"><path fill-rule="evenodd" clip-rule="evenodd" d="M35.12 29.87a19 19 0 0 1 37.77.09c.08.77-.77 2.04-1.85 2.04H37.1C36 32 35 30.82 35.12 29.87Z" fill="#000" fill-opacity=".7"/><path d="M69.59 32H38.4a11 11 0 0 1 15.6-6.8A11 11 0 0 1 69.59 32Z" fill="#FF4F6D"/><path d="M66.57 17.75A5 5 0 0 1 65 18H44c-.8 0-1.57-.2-2.24-.53A18.92 18.92 0 0 1 54 13c4.82 0 9.22 1.8 12.57 4.75Z" fill="#fff"/></g><g transform="translate(104 122)"><path fill-rule="evenodd" clip-rule="evenodd" d="M16 8c0 4.42 5.37 8 12 8s12-3.58 12-8" fill="#000" fill-opacity=".16"/></g><g id="eyeGroup" transform="translate(76 90)"><path d="M27 16c-4.84 0-9 2.65-10.84 6.45-.54 1.1.39 1.85 1.28 1.12a15.13 15.13 0 0 1 9.8-3.22 6 6 0 1 0 10.7 2.8 2 2 0 0 0-.12-.74l-.15-.38a6 6 0 0 0-1.64-2.48C33.9 17.32 30.5 16 27 16ZM85 16c-4.84 0-9 2.65-10.84 6.45-.54 1.1.39 1.85 1.28 1.12a15.13 15.13 0 0 1 9.8-3.22 6 6 0 1 0 10.7 2.8 2 2 0 0 0-.12-.74l-.15-.38a6 6 0 0 0-1.64-2.48C91.9 17.32 88.5 16 85 16Z" fill="#000" fill-opacity=".6"/></g><g transform="translate(76 82)"><path d="m31.23 20.42-.9.4c-5.25 2.09-13.2 1.21-18.05-1.12-.57-.27-.18-1.15.4-1.1 14.92 1.14 24.96-8.15 28.37-14.45.1-.18.41-.2.49-.03 2.3 5.32-4.45 13.98-10.3 16.3ZM80.77 20.42l.9.4c5.25 2.09 13.2 1.21 18.05-1.12.57-.27.18-1.15-.4-1.1-14.92 1.14-24.96-8.15-28.37-14.45-.1-.18-.41-.2-.49-.03-2.3 5.32 4.45 13.98 10.3 16.3Z" fill-rule="evenodd" clip-rule="evenodd" fill="#000" fill-opacity=".6"/></g><g transform="translate(-1)"><path fill-rule="evenodd" clip-rule="evenodd" d="M183.68 38.95c5.4-4.95 6.7-14.99 3.64-21.5-3.77-8-11.42-9-18.75-5.48-6.9 3.31-13.06 4.42-20.62 2.81-7.26-1.54-14.14-4.26-21.65-4.7-12.32-.74-24.3 3.83-32.7 13.05a35.75 35.75 0 0 0-4.11 5.8c-.98 1.63-2.08 3.38-2.5 5.26-.2.9.18 3.1-.27 3.83-.48.8-2.3 1.52-3.07 2.1a25.02 25.02 0 0 0-4.18 4.05c-2.66 3.22-4.13 6.59-5.37 10.57-4.1 13.25-4.45 29 .86 42 .7 1.74 2.9 5.36 4.18 1.64.26-.73-.33-3.19-.33-3.93 0-2.72 1.5-20.73 8.05-30.82 2.13-3.28 11.97-15.58 13.98-15.68 1.07 1.7 11.88 12.51 39.94 11.24 12.66-.58 22.4-6.27 24.74-8.73 1.03 5.53 13 13.81 14.82 17.22 5.26 9.85 6.43 30.3 8.44 30.27 2.01-.04 3.45-5.24 3.87-6.23 3.07-7.38 3.6-16.64 3.26-24.56-.42-10.2-4.63-21.23-12.23-28.22Z" fill="#ecdcbf"/></g><g transform="translate(49 72)"></g><g transform="translate(62 42)"></g></g></g></svg>
-  <div class="name-block"><h2>StableAI</h2><p>Fixed Income Advisor</p></div>
+  <img class="avatar-photo" id="avatarImg"
+       src="https://randomuser.me/api/portraits/men/32.jpg"
+       onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%22340%22 height=%22440%22><rect fill=%22%23223%22 width=%22340%22 height=%22440%22/><text x=%2250%25%22 y=%2250%25%22 text-anchor=%22middle%22 fill=%22%23667%22 font-size=%2260%22 font-family=%22sans-serif%22>AI</text></svg>'"
+       alt="StableAI"/>
+  <video class="avatar-video" id="avatarVideo" muted playsinline></video>
+  <div class="name-overlay">
+    <div><h2>StableAI</h2><p>Fixed Income Advisor</p></div>
+    <div class="sound-wave"><span></span><span></span><span></span><span></span><span></span></div>
+  </div>
 </div>
 <div class="transcript" id="transcriptBubble"></div>
 <div class="response-bubble" id="responseBubble"></div>
 <div style="display:flex;gap:10px;align-items:center;">
   <button class="discuss-btn" id="discussBtn" onclick="startDiscuss()">Discuss</button>
-  <button id="langBtn" onclick="toggleLang()" style="background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.2);border-radius:20px;padding:10px 18px;font-size:14px;color:#fff;cursor:pointer;">🇬🇧 EN</button>
+  <button id="langBtn" onclick="toggleLang()" style="background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.2);border-radius:20px;padding:10px 18px;font-size:14px;color:#fff;cursor:pointer;">EN</button>
 </div>
 <div class="chips">
   <div class="chip" onclick="sendText('What is Stable Money?')">What is Stable Money?</div>
@@ -69,13 +120,6 @@ body{background:#0a0a0f;color:#fff;font-family:-apple-system,sans-serif;min-heig
   <div class="chip" onclick="sendText('Min investment?')">Min investment?</div>
 </div>
 <script>
-/*
- * State — sentCount/doneCount replaces the broken skipUntilDone flag.
- * sentCount increments every time we send a "speak" request.
- * doneCount increments every time a "done"/"error" arrives.
- * If doneCount < sentCount-1 → the message belongs to a stale (cancelled) request → skip it.
- * If doneCount === sentCount-1 → the message belongs to the CURRENT request → process it.
- */
 const S={ws:null,ready:false,speaking:false,continuous:false,audioCtx:null,
          lang:"en-IN",currentAudio:null,sentCount:0,doneCount:0,hideTimer:null};
 
@@ -95,28 +139,68 @@ function connectServer(){
   }catch(e){setStatus("Error: "+e.message,"red");}
 }
 
+/* ── Show thinking animation immediately ── */
+function showThinking(){
+  const fc=document.getElementById("faceCard");
+  fc.classList.add("thinking");
+  fc.classList.remove("speaking");
+  const b=document.getElementById("responseBubble");
+  b.innerHTML='<div class="thinking-dots"><span></span><span></span><span></span></div>';
+  b.style.display="block";
+}
+function hideThinking(){
+  document.getElementById("faceCard").classList.remove("thinking");
+}
+
 function handleMsg(msg){
   const isStale = S.doneCount < S.sentCount - 1;
   if(isStale){
-    // This message belongs to an old cancelled request — drain it
     if(msg.type==="done"||msg.type==="error") S.doneCount++;
     return;
   }
-  // This message belongs to the current request
   if(msg.type==="text_chunk"){
+    hideThinking();
     const b=document.getElementById("responseBubble");
     b.textContent=msg.text;b.style.display="block";
   }
-  if(msg.type==="audio") playAudio(msg.data,msg.format);
+  if(msg.type==="video") playVideo(msg.data,msg.format);
+  else if(msg.type==="audio") playAudio(msg.data,msg.format);
   if(msg.type==="done"||msg.type==="error"){
     S.doneCount++;
+    hideThinking();
     if(msg.type==="error") setStatus("Error","red");
     if(!S.speaking) afterResponse();
   }
 }
 
+function playVideo(b64,fmt){
+  try{S.recognition&&S.recognition.abort();}catch(e){}
+  const bytes=Uint8Array.from(atob(b64),c=>c.charCodeAt(0));
+  const blob=new Blob([bytes],{type:"video/"+fmt});
+  const url=URL.createObjectURL(blob);
+  const vid=document.getElementById("avatarVideo");
+  vid.src=url;
+  vid.classList.add("active");
+  S.speaking=true;
+  document.getElementById("faceCard").classList.remove("thinking");
+  document.getElementById("faceCard").classList.add("speaking");
+  document.getElementById("discussBtn").textContent="Speaking…";
+  setStatus("Speaking…","blue");
+  vid.onended=()=>{
+    vid.classList.remove("active");
+    vid.src="";
+    URL.revokeObjectURL(url);
+    S.speaking=false;
+    afterResponse();
+  };
+  vid.play().catch(()=>{
+    vid.classList.remove("active");
+    S.speaking=false;
+    afterResponse();
+  });
+}
+
 function playAudio(b64,fmt){
-  // Stop mic so avatar's own voice isn't picked up as input
   try{S.recognition&&S.recognition.abort();}catch(e){}
   const bytes=Uint8Array.from(atob(b64),c=>c.charCodeAt(0));
   const blob=new Blob([bytes],{type:"audio/"+fmt});
@@ -131,11 +215,12 @@ function playAudio(b64,fmt){
   }catch(e){}
   S.currentAudio=audio;
   S.speaking=true;
+  document.getElementById("faceCard").classList.remove("thinking");
   document.getElementById("faceCard").classList.add("speaking");
   document.getElementById("discussBtn").textContent="Speaking…";
   setStatus("Speaking…","blue");
   audio.onended=()=>{
-    if(S.currentAudio!==audio) return; // stale audio — was cancelled, ignore
+    if(S.currentAudio!==audio) return;
     S.currentAudio=null;S.speaking=false;afterResponse();
   };
   audio.play().catch(()=>{
@@ -146,7 +231,7 @@ function playAudio(b64,fmt){
 
 function afterResponse(){
   document.getElementById("faceCard").classList.remove("speaking");
-  // Hide bubbles after 4s, but cancel any pending hide from a previous response
+  document.getElementById("faceCard").classList.remove("thinking");
   if(S.hideTimer) clearTimeout(S.hideTimer);
   S.hideTimer=setTimeout(()=>{
     document.getElementById("responseBubble").style.display="none";
@@ -188,7 +273,7 @@ function initRecognition(){
 
 function startListening(){
   if(!S.ready||S.speaking) return;
-  S.recognition=null; // always fresh instance
+  S.recognition=null;
   if(!initRecognition()){alert("Speech not supported — use chips below");return;}
   try{S.recognition.start();}catch(e){console.warn("recognition start:",e);}
 }
@@ -211,27 +296,27 @@ function startDiscuss(){
 function sendText(text){
   if(!S.ws||!S.ready) return;
   try{S.recognition&&S.recognition.abort();}catch(e){}
-  // Stop any playing audio immediately
   if(S.currentAudio){
     try{S.currentAudio.pause();S.currentAudio.src='';}catch(e){}
     S.currentAudio=null;
   }
-  // Clear stale UI
+  // Stop any playing video
+  const vid=document.getElementById("avatarVideo");
+  if(vid){vid.pause();vid.src="";vid.classList.remove("active");}
   document.getElementById("faceCard").classList.remove("speaking");
-  document.getElementById("responseBubble").style.display="none";
   if(S.hideTimer){clearTimeout(S.hideTimer);S.hideTimer=null;}
-  // Track this as the new active request
   S.sentCount++;
   S.speaking=true;
   document.getElementById("discussBtn").textContent="Thinking…";
-  setStatus("Thinking…","blue");
+  setStatus("Thinking…","gold");
+  showThinking(); // ← immediate visual feedback!
   S.ws.send(JSON.stringify({type:"speak",text,lang:S.lang==="hi-IN"?"hi":"en"}));
 }
 
 function toggleLang(){
   S.lang = S.lang==="en-IN" ? "hi-IN" : "en-IN";
   const btn=document.getElementById("langBtn");
-  btn.textContent = S.lang==="hi-IN" ? "🇮🇳 हिंदी" : "🇬🇧 EN";
+  btn.textContent = S.lang==="hi-IN" ? "HI" : "EN";
   if(S.recognition){try{S.recognition.stop();}catch(e){} S.recognition=null;}
 }
 
@@ -241,31 +326,6 @@ window.onload=()=>{
   document.getElementById('serverUrl').value=proto+'://'+h+'/ws/talk';
   setTimeout(connectServer,500);
 };
-// Eye drift + blink — must include original SVG translate(76,90) in CSS transform
-// because CSS transform overrides the SVG attribute transform entirely
-(function eyeAnimation(){
-  const eg=document.getElementById('eyeGroup');
-  if(!eg){setTimeout(eyeAnimation,200);return;}
-  let t=0,frame=0;
-  const BLINK_EVERY=240,BLINK_FRAMES=14; // ~4s cycle, ~230ms blink at 60fps
-  function tick(){
-    t+=0.008; frame++;
-    // Drift: small sine wave so eyes look around naturally
-    const dx=Math.sin(t)*1.4;
-    const dy=Math.cos(t*0.6)*0.8;
-    // Blink: brief squint at end of every cycle
-    let sy=1.0;
-    const phase=frame%BLINK_EVERY;
-    if(phase>=BLINK_EVERY-BLINK_FRAMES){
-      const p=(phase-(BLINK_EVERY-BLINK_FRAMES))/BLINK_FRAMES;
-      sy=p<0.5?(1-p*2*0.92):(0.08+(p-0.5)*2*0.92);
-    }
-    // IMPORTANT: prepend original SVG position so CSS doesn't discard it
-    eg.style.transform=`translate(76px,90px) translate(${dx}px,${dy}px) scaleY(${sy})`;
-    requestAnimationFrame(tick);
-  }
-  tick();
-})();
 </script>
 </body>
 </html>
