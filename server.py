@@ -302,7 +302,7 @@ async def ws_talk(ws: WebSocket):
             lang = data.get("lang") or ("hi" if _detect_hindi(text) else "en")
 
             if lang == "hi":
-                system_msg = f"""आप Aayush हैं — Stable Money के विशेषज्ञ वित्तीय सलाहकार।
+                system_msg = f"""आप StableAI हैं — Stable Money के विशेषज्ञ वित्तीय सलाहकार।
 
 OFFICIAL KNOWLEDGE BASE:
 {KNOWLEDGE_BASE}
@@ -316,7 +316,7 @@ OFFICIAL KNOWLEDGE BASE:
 - जवाब हमेशा पूरा करें, बीच में मत रोकें।
 - अगर जवाब knowledge base में नहीं है तो कहें: इस बारे में मैं team से confirm करके बताऊंगा।"""
             else:
-                system_msg = f"""You are Aayush, a sharp and friendly male financial advisor at Stable Money.
+                system_msg = f"""You are StableAI, a sharp and friendly male financial advisor at Stable Money.
 
 OFFICIAL KNOWLEDGE BASE (use ONLY this — never invent facts):
 {KNOWLEDGE_BASE}
@@ -352,14 +352,42 @@ STRICT RULES:
 
             try:
                 audio_bytes = await synthesize_speech(answer)
+            except Exception as e:
+                await ws.send_json({"type": "error", "msg": f"TTS failed: {str(e)}"})
+                continue
+
+            # If Wav2Lip available (GPU), generate lip-synced video
+            video_bytes = None
+            if models.wav2lip is not None and models.face_frames is not None:
+                try:
+                    await ws.send_json({"type": "status", "msg": "animating"})
+                    # edge-tts outputs MP3, Wav2Lip needs WAV — convert
+                    wav_path = f"/tmp/{uuid.uuid4().hex}.wav"
+                    mp3_path = f"/tmp/{uuid.uuid4().hex}.mp3"
+                    with open(mp3_path, "wb") as f:
+                        f.write(audio_bytes)
+                    os.system(f"ffmpeg -y -i {mp3_path} -ar 16000 -ac 1 {wav_path} -loglevel quiet")
+                    with open(wav_path, "rb") as f:
+                        wav_bytes = f.read()
+                    for p in [mp3_path, wav_path]:
+                        try: os.remove(p)
+                        except: pass
+                    video_bytes = generate_lipsync_video(wav_bytes)
+                except Exception as e:
+                    print(f"[ws] Wav2Lip failed, falling back to audio: {e}")
+
+            if video_bytes:
+                await ws.send_json({
+                    "type": "video",
+                    "data": base64.b64encode(video_bytes).decode("utf-8"),
+                    "format": "mp4"
+                })
+            else:
                 await ws.send_json({
                     "type": "audio",
                     "data": base64.b64encode(audio_bytes).decode("utf-8"),
                     "format": "mp3"
                 })
-            except Exception as e:
-                await ws.send_json({"type": "error", "msg": f"TTS failed: {str(e)}"})
-                continue
 
             await ws.send_json({"type": "done"})
             print("[ws] Ready for next question")
