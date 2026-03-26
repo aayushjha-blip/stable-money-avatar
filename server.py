@@ -101,10 +101,53 @@ async def load_models():
 # 2. TTS — YOUR OWN ELEVENLABS
 # ════════════════════════════════════════
 
-def synthesize_speech(text: str) -> bytes:
-    """Convert text → WAV bytes using Coqui XTTS v2"""
+ACRONYMS = {
+    "DICGC": "D I C G C",
+    "NBFC": "N B F C",
+    "NBFCs": "N B F Cs",
+    "SEBI": "S E B I",
+    "RBI": "R B I",
+    # FD/FDs intentionally excluded — LLM already writes "Fixed Deposits (FDs)"
+    # so replacing "FDs" would create "Fixed Deposits (fixed deposits)" double-read
+    "SFB": "small finance bank",
+    "SFBs": "small finance banks",
+}
+
+def preprocess_tts(text: str) -> str:
+    import re
+    # Step 1: "ACRONYM (Full Form)" → keep only Full Form, drop the redundant acronym
+    # e.g. "RBI (Reserve Bank of India)" → "Reserve Bank of India"
+    # e.g. "NBFCs (Non-Banking Financial Companies)" → "Non-Banking Financial Companies"
+    text = re.sub(r'\b[A-Z]{2,7}s?\s*\(([^)]+)\)', r'\1', text)
+    # Step 2: expand any remaining standalone acronyms
+    for acronym, expansion in ACRONYMS.items():
+        text = re.sub(r'\b' + re.escape(acronym) + r'\b', expansion, text)
+    return text
+
+def _detect_hindi(text: str) -> bool:
+    """Return True if text contains Devanagari characters (Hindi)."""
+    import re
+    return bool(re.search(r'[\u0900-\u097F]', text))
+
+# ── Knowledge Base ──
+_KB_PATH = Path("./knowledge_base.txt")
+def _load_kb() -> str:
+    if _KB_PATH.exists():
+        return _KB_PATH.read_text(encoding="utf-8")
+    return ""
+
+KNOWLEDGE_BASE = _load_kb()
+
+async def synthesize_speech(text: str) -> bytes:
+    """Convert text → MP3 bytes using edge-tts with Indian voice."""
+    import edge_tts
+    text = preprocess_tts(text)
+    voice = "hi-IN-MadhurNeural" if _detect_hindi(text) else "en-IN-PrabhatNeural"
+    communicate = edge_tts.Communicate(text, voice=voice, rate="+5%", pitch="+0Hz")
     buf = io.BytesIO()
-    models.tts.tts_to_file(text=text, file_path=buf)
+    async for chunk in communicate.stream():
+        if chunk["type"] == "audio":
+            buf.write(chunk["data"])
     buf.seek(0)
     return buf.read()
 
@@ -255,48 +298,64 @@ async def ws_talk(ws: WebSocket):
             if not text:
                 continue
 
-            prompt = f"""You are Aayush, a warm friendly financial advisor for Stable Money — India's leading fixed-income investment platform.
+            # Use explicit lang sent by frontend; fallback to Devanagari detection
+            lang = data.get("lang") or ("hi" if _detect_hindi(text) else "en")
 
-Key facts:
-- Stable Money offers FDs from 25+ NBFCs and small finance banks with 8-9.5% returns
-- Much better than regular bank FDs which give 6.5-7%
-- Sukoon: a no-lock-in idle money product earning 7-8% — better than savings accounts
-- Minimum investment: Rs 1000
-- DICGC insured up to Rs 5 lakhs for bank FDs
-- Target: urban Indian professionals aged 25-45
+            if lang == "hi":
+                system_msg = f"""आप Aayush हैं — Stable Money के विशेषज्ञ वित्तीय सलाहकार।
 
-Answer in ONE sentence only. Max 15 words. Be warm.
-User question: {text}
-"""
+OFFICIAL KNOWLEDGE BASE:
+{KNOWLEDGE_BASE}
+
+सख्त नियम:
+- सिर्फ हिंदी में जवाब दें — कोई अंग्रेज़ी वाक्य नहीं।
+- सीधे सवाल का जवाब दें — "बहुत अच्छा सवाल" जैसी फालतू बातें मत करें।
+- 2-3 छोटे, स्पष्ट वाक्य काफी हैं। लंबा भाषण मत दें।
+- सिर्फ knowledge base में दी गई जानकारी बताएं — कुछ बनाएं नहीं।
+- कभी भी "RBI (Reserve Bank of India)" जैसा न लिखें — acronym और full form दोनों एक साथ नहीं। सिर्फ full form लिखें।
+- जवाब हमेशा पूरा करें, बीच में मत रोकें।
+- अगर जवाब knowledge base में नहीं है तो कहें: इस बारे में मैं team से confirm करके बताऊंगा।"""
+            else:
+                system_msg = f"""You are Aayush, a sharp and friendly male financial advisor at Stable Money.
+
+OFFICIAL KNOWLEDGE BASE (use ONLY this — never invent facts):
+{KNOWLEDGE_BASE}
+
+STRICT RULES:
+- Answer ONLY in English. Zero Hindi words.
+- Get straight to the point. No "Great question!", no fluff, no repeating the question.
+- Keep it to 2-3 sentences — clear, specific, and useful.
+- Use exact numbers from the knowledge base (e.g. "8% to 9.5%", "Rs 5 lakhs cover").
+- NEVER write an acronym and its full form together like "RBI (Reserve Bank of India)" — pick one. Prefer the full form for clarity.
+- If the answer isn't in the knowledge base, say: "Let me check the latest details on that and get back to you."
+- Always finish your sentence — never trail off mid-answer."""
 
             try:
-                import urllib.request, json
-                req = urllib.request.Request(
-                    "http://localhost:11434/api/generate",
-                    data=json.dumps({
-                        "model": "llama3.2:3b",
-                        "prompt": prompt,
-                        "stream": False,
-                        "options": {"num_predict": 40, "temperature": 0.7}
-                    }).encode("utf-8"),
-                    headers={"Content-Type": "application/json"}
+                from groq import Groq
+                client = Groq(api_key=os.environ.get("GROQ_API_KEY", ""))
+                completion = client.chat.completions.create(
+                    model="llama-3.1-8b-instant",
+                    messages=[
+                        {"role": "system", "content": system_msg},
+                        {"role": "user", "content": text}
+                    ],
+                    max_tokens=150,
+                    temperature=0.6,
                 )
-                with urllib.request.urlopen(req, timeout=120) as resp:
-                    data = json.loads(resp.read().decode("utf-8"))
-                answer = data.get("response", "").strip().strip('"') or "Sorry, I could not generate a response."
+                answer = completion.choices[0].message.content.strip().strip('"') or "Sorry, I could not generate a response."
             except Exception as e:
-                answer = f"Sorry, Ollama failed: {str(e)}"
+                answer = f"Sorry, Groq failed: {str(e)}"
 
             print(f"[ws] answer ready: {answer[:120]}")
             await ws.send_json({"type": "text_chunk", "text": answer})
             await ws.send_json({"type": "status", "msg": "synthesizing"})
 
             try:
-                audio_bytes = synthesize_speech(answer)
+                audio_bytes = await synthesize_speech(answer)
                 await ws.send_json({
                     "type": "audio",
                     "data": base64.b64encode(audio_bytes).decode("utf-8"),
-                    "format": "wav"
+                    "format": "mp3"
                 })
             except Exception as e:
                 await ws.send_json({"type": "error", "msg": f"TTS failed: {str(e)}"})
