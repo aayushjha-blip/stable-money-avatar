@@ -101,10 +101,33 @@ async def load_models():
 # 2. TTS — YOUR OWN ELEVENLABS
 # ════════════════════════════════════════
 
-def synthesize_speech(text: str) -> bytes:
-    """Convert text → WAV bytes using Coqui XTTS v2"""
+ACRONYMS = {
+    "DICGC": "D I C G C",
+    "NBFC": "N B F C",
+    "NBFCs": "N B F Cs",
+    "SEBI": "S E B I",
+    "RBI": "R B I",
+    "FD": "fixed deposit",
+    "FDs": "fixed deposits",
+    "SFB": "small finance bank",
+    "SFBs": "small finance banks",
+}
+
+def preprocess_tts(text: str) -> str:
+    import re
+    for acronym, expansion in ACRONYMS.items():
+        text = re.sub(r'\b' + re.escape(acronym) + r'\b', expansion, text)
+    return text
+
+async def synthesize_speech(text: str) -> bytes:
+    """Convert text → MP3 bytes using edge-tts with natural prosody"""
+    import edge_tts
+    text = preprocess_tts(text)
+    communicate = edge_tts.Communicate(text, voice="en-IN-PrabhatNeural", rate="-10%", pitch="+0Hz")
     buf = io.BytesIO()
-    models.tts.tts_to_file(text=text, file_path=buf)
+    async for chunk in communicate.stream():
+        if chunk["type"] == "audio":
+            buf.write(chunk["data"])
     buf.seek(0)
     return buf.read()
 
@@ -255,48 +278,45 @@ async def ws_talk(ws: WebSocket):
             if not text:
                 continue
 
-            prompt = f"""You are Aayush, a warm friendly financial advisor for Stable Money — India's leading fixed-income investment platform.
+            prompt = f"""You are Aayush, a warm and friendly male financial advisor for Stable Money — India's leading fixed-income investment platform.
 
-Key facts:
-- Stable Money offers FDs from 25+ NBFCs and small finance banks with 8-9.5% returns
-- Much better than regular bank FDs which give 6.5-7%
-- Sukoon: a no-lock-in idle money product earning 7-8% — better than savings accounts
+Key facts (always spell out acronyms in full when speaking):
+- Stable Money offers fixed deposits from 25+ Non-Banking Financial Companies and small finance banks with 8 to 9.5 percent returns
+- Much better than regular bank fixed deposits which give 6.5 to 7 percent
+- Sukoon: a no-lock-in idle money product earning 7 to 8 percent — better than savings accounts
 - Minimum investment: Rs 1000
-- DICGC insured up to Rs 5 lakhs for bank FDs
-- Target: urban Indian professionals aged 25-45
+- Deposits insured by the Deposit Insurance and Credit Guarantee Corporation up to Rs 5 lakhs for bank fixed deposits
+- Target: urban Indian professionals aged 25 to 45
 
-Answer in ONE sentence only. Max 15 words. Be warm.
+Respond conversationally like a real advisor — exactly 1 to 2 short sentences, max 35 words total.
+Start with a natural filler like "Well,", "So,", "Great question," or "You know,".
+Use commas naturally. Never use abbreviations — always say the full form.
 User question: {text}
 """
 
             try:
-                import urllib.request, json
-                req = urllib.request.Request(
-                    "http://localhost:11434/api/generate",
-                    data=json.dumps({
-                        "model": "llama3.2:3b",
-                        "prompt": prompt,
-                        "stream": False,
-                        "options": {"num_predict": 40, "temperature": 0.7}
-                    }).encode("utf-8"),
-                    headers={"Content-Type": "application/json"}
+                from groq import Groq
+                client = Groq(api_key=os.environ.get("GROQ_API_KEY", ""))
+                completion = client.chat.completions.create(
+                    model="llama-3.1-8b-instant",
+                    messages=[{"role": "user", "content": prompt}],
+                    max_tokens=50,
+                    temperature=0.7,
                 )
-                with urllib.request.urlopen(req, timeout=120) as resp:
-                    data = json.loads(resp.read().decode("utf-8"))
-                answer = data.get("response", "").strip().strip('"') or "Sorry, I could not generate a response."
+                answer = completion.choices[0].message.content.strip().strip('"') or "Sorry, I could not generate a response."
             except Exception as e:
-                answer = f"Sorry, Ollama failed: {str(e)}"
+                answer = f"Sorry, Groq failed: {str(e)}"
 
             print(f"[ws] answer ready: {answer[:120]}")
             await ws.send_json({"type": "text_chunk", "text": answer})
             await ws.send_json({"type": "status", "msg": "synthesizing"})
 
             try:
-                audio_bytes = synthesize_speech(answer)
+                audio_bytes = await synthesize_speech(answer)
                 await ws.send_json({
                     "type": "audio",
                     "data": base64.b64encode(audio_bytes).decode("utf-8"),
-                    "format": "wav"
+                    "format": "mp3"
                 })
             except Exception as e:
                 await ws.send_json({"type": "error", "msg": f"TTS failed: {str(e)}"})
