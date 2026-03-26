@@ -119,11 +119,26 @@ def preprocess_tts(text: str) -> str:
         text = re.sub(r'\b' + re.escape(acronym) + r'\b', expansion, text)
     return text
 
+def _detect_hindi(text: str) -> bool:
+    """Return True if text contains Devanagari characters (Hindi)."""
+    import re
+    return bool(re.search(r'[\u0900-\u097F]', text))
+
+# ── Knowledge Base ──
+_KB_PATH = Path("./knowledge_base.txt")
+def _load_kb() -> str:
+    if _KB_PATH.exists():
+        return _KB_PATH.read_text(encoding="utf-8")
+    return ""
+
+KNOWLEDGE_BASE = _load_kb()
+
 async def synthesize_speech(text: str) -> bytes:
-    """Convert text → MP3 bytes using edge-tts with natural prosody"""
+    """Convert text → MP3 bytes using edge-tts with Indian voice."""
     import edge_tts
     text = preprocess_tts(text)
-    communicate = edge_tts.Communicate(text, voice="en-IN-PrabhatNeural", rate="-10%", pitch="+0Hz")
+    voice = "hi-IN-MadhurNeural" if _detect_hindi(text) else "en-IN-PrabhatNeural"
+    communicate = edge_tts.Communicate(text, voice=voice, rate="-8%", pitch="+0Hz")
     buf = io.BytesIO()
     async for chunk in communicate.stream():
         if chunk["type"] == "audio":
@@ -278,30 +293,45 @@ async def ws_talk(ws: WebSocket):
             if not text:
                 continue
 
-            prompt = f"""You are Aayush, a warm and friendly male financial advisor for Stable Money — India's leading fixed-income investment platform.
+            # Use explicit lang sent by frontend; fallback to Devanagari detection
+            lang = data.get("lang") or ("hi" if _detect_hindi(text) else "en")
 
-Key facts (always spell out acronyms in full when speaking):
-- Stable Money offers fixed deposits from 25+ Non-Banking Financial Companies and small finance banks with 8 to 9.5 percent returns
-- Much better than regular bank fixed deposits which give 6.5 to 7 percent
-- Sukoon: a no-lock-in idle money product earning 7 to 8 percent — better than savings accounts
-- Minimum investment: Rs 1000
-- Deposits insured by the Deposit Insurance and Credit Guarantee Corporation up to Rs 5 lakhs for bank fixed deposits
-- Target: urban Indian professionals aged 25 to 45
+            if lang == "hi":
+                system_msg = f"""आप Aayush हैं — Stable Money के एक विशेषज्ञ, मिलनसार और भरोसेमंद पुरुष वित्तीय सलाहकार।
 
-Respond conversationally like a real advisor — exactly 1 to 2 short sentences, max 35 words total.
-Start with a natural filler like "Well,", "So,", "Great question," or "You know,".
-Use commas naturally. Never use abbreviations — always say the full form.
-User question: {text}
-"""
+नीचे Stable Money की आधिकारिक जानकारी दी गई है — केवल इसी के आधार पर जवाब दें:
+{KNOWLEDGE_BASE}
+
+नियम:
+- केवल हिंदी में जवाब दें। एक भी अंग्रेज़ी वाक्य नहीं।
+- 2-3 वाक्यों में स्पष्ट, सटीक और उपयोगी जवाब दें।
+- गर्मजोशी और विश्वास के साथ बोलें — जैसे एक भरोसेमंद दोस्त जो finance जानता हो।
+- अगर जवाब knowledge base में नहीं है, तो कहें: "इस बारे में मुझे और जानकारी लेनी होगी।"
+- जवाब कभी अधूरा न छोड़ें।"""
+            else:
+                system_msg = f"""You are Aayush, a warm, knowledgeable and trustworthy male financial advisor for Stable Money.
+
+Use ONLY the following official knowledge base to answer questions:
+{KNOWLEDGE_BASE}
+
+Rules:
+- Reply ONLY in English. Do not mix in Hindi.
+- Give a complete, accurate, helpful answer. Do not cut off mid-sentence.
+- Be conversational and warm — like a trusted friend who knows finance.
+- If something is not in the knowledge base, say: "I'd need to check the latest details on that for you."
+- Never make up numbers, returns, or product features not listed above."""
 
             try:
                 from groq import Groq
                 client = Groq(api_key=os.environ.get("GROQ_API_KEY", ""))
                 completion = client.chat.completions.create(
-                    model="llama-3.1-8b-instant",
-                    messages=[{"role": "user", "content": prompt}],
-                    max_tokens=50,
-                    temperature=0.7,
+                    model="llama-3.3-70b-versatile",
+                    messages=[
+                        {"role": "system", "content": system_msg},
+                        {"role": "user", "content": text}
+                    ],
+                    max_tokens=300,
+                    temperature=0.65,
                 )
                 answer = completion.choices[0].message.content.strip().strip('"') or "Sorry, I could not generate a response."
             except Exception as e:
