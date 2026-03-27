@@ -99,7 +99,7 @@ body{background:#0a0a0f;color:#fff;font-family:-apple-system,sans-serif;min-heig
        src="https://randomuser.me/api/portraits/men/32.jpg"
        onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%22340%22 height=%22440%22><rect fill=%22%23223%22 width=%22340%22 height=%22440%22/><text x=%2250%25%22 y=%2250%25%22 text-anchor=%22middle%22 fill=%22%23667%22 font-size=%2260%22 font-family=%22sans-serif%22>AI</text></svg>'"
        alt="StableAI"/>
-  <video class="avatar-video" id="avatarVideo" muted playsinline></video>
+  <video class="avatar-video" id="avatarVideo" playsinline></video>
   <div class="name-overlay">
     <div><h2>StableAI</h2><p>Fixed Income Advisor</p></div>
     <div class="sound-wave"><span></span><span></span><span></span><span></span><span></span></div>
@@ -163,8 +163,8 @@ function handleMsg(msg){
     const b=document.getElementById("responseBubble");
     b.textContent=msg.text;b.style.display="block";
   }
-  if(msg.type==="video") playVideo(msg.data,msg.format);
-  else if(msg.type==="audio") playAudio(msg.data,msg.format);
+  if(msg.type==="audio") playAudio(msg.data,msg.format);
+  if(msg.type==="video") upgradeToVideo(msg.data,msg.format);
   if(msg.type==="done"||msg.type==="error"){
     S.doneCount++;
     hideThinking();
@@ -173,7 +173,13 @@ function handleMsg(msg){
   }
 }
 
-function playVideo(b64,fmt){
+function upgradeToVideo(b64,fmt){
+  /* Video arrived after audio started — stop audio, switch to lip-synced video */
+  if(S.currentAudio){
+    S.currentAudio.onended=null;
+    S.currentAudio.pause();
+    S.currentAudio=null;
+  }
   try{S.recognition&&S.recognition.abort();}catch(e){}
   const bytes=Uint8Array.from(atob(b64),c=>c.charCodeAt(0));
   const blob=new Blob([bytes],{type:"video/"+fmt});
@@ -193,7 +199,8 @@ function playVideo(b64,fmt){
     S.speaking=false;
     afterResponse();
   };
-  vid.play().catch(()=>{
+  vid.play().catch(e=>{
+    console.error("[video] Playback failed:",e);
     vid.classList.remove("active");
     S.speaking=false;
     afterResponse();

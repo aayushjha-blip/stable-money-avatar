@@ -142,18 +142,43 @@ def _load_kb() -> str:
 
 KNOWLEDGE_BASE = _load_kb()
 
-async def synthesize_speech(text: str) -> bytes:
-    """Convert text → MP3 bytes using edge-tts with Indian voice."""
-    import edge_tts
+async def synthesize_speech(text: str) -> tuple[bytes, str]:
+    """Convert text → audio bytes. Returns (audio_bytes, format).
+    Uses ElevenLabs if API key is set, falls back to edge-tts."""
     text = preprocess_tts(text)
-    voice = "hi-IN-MadhurNeural" if _detect_hindi(text) else "en-IN-PrabhatNeural"
+    is_hindi = _detect_hindi(text)
+
+    # Try ElevenLabs first
+    eleven_key = os.environ.get("ELEVENLABS_API_KEY", "")
+    if eleven_key:
+        try:
+            from elevenlabs import ElevenLabs
+            client = ElevenLabs(api_key=eleven_key)
+            audio_iter = client.text_to_speech.convert(
+                text=text,
+                voice_id="pNInz6obpgDQGcFmaJgB",  # "Adam" — warm male voice
+                model_id="eleven_turbo_v2_5",       # fastest model
+                output_format="mp3_22050_32",       # small + fast
+            )
+            buf = io.BytesIO()
+            for chunk in audio_iter:
+                buf.write(chunk)
+            buf.seek(0)
+            print(f"[tts] ElevenLabs: {buf.getbuffer().nbytes} bytes")
+            return buf.read(), "mp3"
+        except Exception as e:
+            print(f"[tts] ElevenLabs failed, falling back to edge-tts: {e}")
+
+    # Fallback: edge-tts
+    import edge_tts
+    voice = "hi-IN-MadhurNeural" if is_hindi else "en-IN-PrabhatNeural"
     communicate = edge_tts.Communicate(text, voice=voice, rate="+5%", pitch="+0Hz")
     buf = io.BytesIO()
     async for chunk in communicate.stream():
         if chunk["type"] == "audio":
             buf.write(chunk["data"])
     buf.seek(0)
-    return buf.read()
+    return buf.read(), "mp3"
 
 
 # ════════════════════════════════════════
@@ -165,7 +190,7 @@ IMG_SIZE = 96   # Wav2Lip input size
 async def preprocess_face(img_path: str):
     """Pre-process face image for Wav2Lip — run once"""
     img = cv2.imread(img_path)
-    img = cv2.resize(img, (640, 480))
+    img = cv2.resize(img, (480, 360))
     # detect face bbox
     preds = models.detector.get_detections_for_batch(
         np.array([img[:, :, ::-1]])
@@ -192,6 +217,8 @@ def generate_lipsync_video(audio_bytes: bytes) -> Optional[bytes]:
         audio_path = f.name
 
     out_path = f"/tmp/{uuid.uuid4().hex}.mp4"
+    raw_path = None
+    final_path = None
 
     try:
         # Load & process mel spectrogram
@@ -246,31 +273,29 @@ def generate_lipsync_video(audio_bytes: bytes) -> Optional[bytes]:
                 combined[h//2:] = p_resized[h//2:]
                 gen_frames.append(combined)
 
-        # Write to MP4
+        # Encode to browser-compatible H.264 MP4 using ffmpeg pipe
         h, w = gen_frames[0].shape[:2]
-        writer = cv2.VideoWriter(
-            out_path,
-            cv2.VideoWriter_fourcc(*"mp4v"),
-            fps, (w, h)
-        )
-        for f in gen_frames:
-            writer.write(f)
-        writer.release()
+        raw_path = f"/tmp/{uuid.uuid4().hex}.raw"
+        with open(raw_path, "wb") as rf:
+            for frame in gen_frames:
+                rf.write(frame.tobytes())
 
-        # Mux audio into video using ffmpeg
-        muxed = out_path.replace(".mp4", "_final.mp4")
+        final_path = out_path.replace(".mp4", "_h264.mp4")
         os.system(
-            f"ffmpeg -y -i {out_path} -i {audio_path} "
-            f"-c:v copy -c:a aac -shortest {muxed} -loglevel quiet"
+            f"ffmpeg -y -f rawvideo -vcodec rawvideo -s {w}x{h} "
+            f"-pix_fmt bgr24 -r {fps} -i {raw_path} -i {audio_path} "
+            f"-c:v libx264 -preset ultrafast -pix_fmt yuv420p "
+            f"-c:a aac -shortest {final_path} -loglevel quiet"
         )
 
-        with open(muxed, "rb") as vf:
+        with open(final_path, "rb") as vf:
             return vf.read()
 
     finally:
-        for p in [audio_path, out_path, out_path.replace(".mp4","_final.mp4")]:
-            try: os.remove(p)
-            except: pass
+        for p in [audio_path, out_path, raw_path, final_path]:
+            if p:
+                try: os.remove(p)
+                except: pass
 
 
 # ════════════════════════════════════════
@@ -355,43 +380,43 @@ STRICT RULES:
             await ws.send_json({"type": "status", "msg": "synthesizing"})
 
             try:
-                audio_bytes = await synthesize_speech(answer)
+                audio_bytes, audio_fmt = await synthesize_speech(answer)
             except Exception as e:
                 await ws.send_json({"type": "error", "msg": f"TTS failed: {str(e)}"})
                 continue
 
-            # If Wav2Lip available (GPU), generate lip-synced video
-            video_bytes = None
+            # Audio-first: send audio immediately so user hears response fast
+            await ws.send_json({
+                "type": "audio",
+                "data": base64.b64encode(audio_bytes).decode("utf-8"),
+                "format": audio_fmt
+            })
+
+            # If Wav2Lip available (GPU), generate lip-synced video in parallel
             if models.wav2lip is not None and models.face_frames is not None:
                 try:
                     await ws.send_json({"type": "status", "msg": "animating"})
-                    # edge-tts outputs MP3, Wav2Lip needs WAV — convert
+                    # Convert audio to WAV 16kHz mono for Wav2Lip
                     wav_path = f"/tmp/{uuid.uuid4().hex}.wav"
-                    mp3_path = f"/tmp/{uuid.uuid4().hex}.mp3"
-                    with open(mp3_path, "wb") as f:
+                    src_path = f"/tmp/{uuid.uuid4().hex}.{audio_fmt}"
+                    with open(src_path, "wb") as f:
                         f.write(audio_bytes)
-                    os.system(f"ffmpeg -y -i {mp3_path} -ar 16000 -ac 1 {wav_path} -loglevel quiet")
+                    os.system(f"ffmpeg -y -i {src_path} -ar 16000 -ac 1 {wav_path} -loglevel quiet")
                     with open(wav_path, "rb") as f:
                         wav_bytes = f.read()
-                    for p in [mp3_path, wav_path]:
+                    for p in [src_path, wav_path]:
                         try: os.remove(p)
                         except: pass
-                    video_bytes = generate_lipsync_video(wav_bytes)
+                    video_bytes = await asyncio.get_event_loop().run_in_executor(
+                        None, generate_lipsync_video, wav_bytes)
+                    if video_bytes:
+                        await ws.send_json({
+                            "type": "video",
+                            "data": base64.b64encode(video_bytes).decode("utf-8"),
+                            "format": "mp4"
+                        })
                 except Exception as e:
-                    print(f"[ws] Wav2Lip failed, falling back to audio: {e}")
-
-            if video_bytes:
-                await ws.send_json({
-                    "type": "video",
-                    "data": base64.b64encode(video_bytes).decode("utf-8"),
-                    "format": "mp4"
-                })
-            else:
-                await ws.send_json({
-                    "type": "audio",
-                    "data": base64.b64encode(audio_bytes).decode("utf-8"),
-                    "format": "mp3"
-                })
+                    print(f"[ws] Wav2Lip failed: {e}")
 
             await ws.send_json({"type": "done"})
             print("[ws] Ready for next question")
