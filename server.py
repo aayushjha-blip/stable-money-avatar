@@ -1,6 +1,6 @@
 """
 Stable Money Avatar Agent — Self-Hosted Backend
-Replaces: ElevenLabs (Coqui XTTS v2) + HeyGen (Wav2Lip)
+TTS: edge-tts (Microsoft Neural) | LLM: Groq | Avatar: Wav2Lip (GPU)
 Run: uvicorn server:app --host 0.0.0.0 --port 8000
 """
 
@@ -8,52 +8,60 @@ import asyncio, base64, io, os, sys, tempfile, time, uuid
 from pathlib import Path
 from typing import Optional
 
-import cv2
 import numpy as np
 import torch
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
-import soundfile as sf
-
-# ── Coqui TTS ──
-from TTS.api import TTS
 
 # ── Wav2Lip (optional — requires GPU server) ──
 WAV2LIP_AVAILABLE = False
 try:
-    sys.path.insert(0, "./Wav2Lip")
+    # Try multiple paths (local ./Wav2Lip or Colab /content/Wav2Lip)
+    for wp in ["./Wav2Lip", "/content/Wav2Lip"]:
+        if Path(wp).exists():
+            sys.path.insert(0, wp)
     import audio as wav2lip_audio
     from models import Wav2Lip as Wav2LipModel
     import face_detection
+    import cv2
     WAV2LIP_AVAILABLE = True
     print("[server] Wav2Lip available ✓")
-except ImportError:
-    print("[server] Wav2Lip not available — avatar disabled, voice-only mode")
+except ImportError as e:
+    print(f"[server] Wav2Lip not available — voice-only mode ({e})")
+    try:
+        import cv2
+    except ImportError:
+        pass
 
 app = FastAPI(title="Stable Money Avatar Server")
-
-import asyncio
 
 app.add_middleware(CORSMiddleware,
     allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
 
 # ── Config ──
 DEVICE       = "cuda" if torch.cuda.is_available() else "cpu"
-SAMPLE_RATE  = 24000
 AVATAR_IMG   = "./avatar.jpg"          # uploaded face image
-WAV2LIP_CKPT = "./checkpoints/wav2lip_gan.pth"
-VOICE_SAMPLE = "./voice_sample.wav"    # 6s sample for voice cloning
+
+# Search multiple paths for Wav2Lip checkpoint
+WAV2LIP_CKPT = None
+for ckpt_path in [
+    "./checkpoints/wav2lip_gan.pth",
+    "/content/checkpoints/wav2lip_gan.pth",
+    "/content/Wav2Lip/checkpoints/wav2lip_gan.pth",
+]:
+    if Path(ckpt_path).exists() and os.path.getsize(ckpt_path) > 1_000_000:
+        WAV2LIP_CKPT = ckpt_path
+        break
 
 print(f"[server] Using device: {DEVICE}")
+print(f"[server] Wav2Lip checkpoint: {WAV2LIP_CKPT or 'not found'}")
 
 # ════════════════════════════════════════
 # 1. LOAD MODELS AT STARTUP
 # ════════════════════════════════════════
 
 class Models:
-    tts: Optional[TTS] = None
     wav2lip: Optional[object] = None
     face_frames: Optional[list] = None   # pre-processed face frames
     detector = None
@@ -62,8 +70,7 @@ models = Models()
 
 @app.on_event("startup")
 async def load_models():
-    print("[startup] Loading Coqui XTTS v2…")
-
+    # Patch torch.load for older checkpoints
     _torch_load = torch.load
     def _patched_torch_load(*args, **kwargs):
         if "weights_only" not in kwargs:
@@ -71,10 +78,7 @@ async def load_models():
         return _torch_load(*args, **kwargs)
     torch.load = _patched_torch_load
 
-    models.tts = TTS("tts_models/en/ljspeech/tacotron2-DDC").to(DEVICE)
-    print("[startup] XTTS v2 loaded ✓")
-
-    if Path(WAV2LIP_CKPT).exists():
+    if WAV2LIP_AVAILABLE and WAV2LIP_CKPT:
         print("[startup] Loading Wav2Lip…")
         ckpt = torch.load(WAV2LIP_CKPT, map_location=DEVICE)
         s = ckpt["state_dict"]
@@ -92,7 +96,7 @@ async def load_models():
         if Path(AVATAR_IMG).exists():
             await preprocess_face(AVATAR_IMG)
     else:
-        print("[startup] Wav2Lip checkpoint not found — avatar disabled")
+        print("[startup] Wav2Lip not available — audio-only mode")
 
     print("[startup] All models ready ✓")
 
@@ -409,22 +413,15 @@ async def upload_avatar(file: UploadFile = File(...)):
         f.write(contents)
     return {"status": "ok", "message": "Avatar photo saved"}
 
-@app.post("/upload/voice")
-async def upload_voice(file: UploadFile = File(...)):
-    contents = await file.read()
-    with open(VOICE_SAMPLE, "wb") as f:
-        f.write(contents)
-    return {"status": "ok", "message": "Voice sample saved — cloning active"}
 
 @app.get("/health")
 def health():
     return {
         "status": "ok",
         "device": DEVICE,
-        "tts_loaded": models.tts is not None,
+        "tts": "edge-tts",
         "wav2lip_loaded": models.wav2lip is not None,
         "face_ready": models.face_frames is not None,
-        "voice_clone": Path(VOICE_SAMPLE).exists()
     }
 
 # ── Static frontend ──
