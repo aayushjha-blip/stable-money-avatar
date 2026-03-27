@@ -12,7 +12,6 @@ import numpy as np
 import torch
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 
 # ── Wav2Lip (optional — requires GPU server) ──
@@ -42,9 +41,7 @@ app.add_middleware(CORSMiddleware,
 
 # ── Config ──
 DEVICE       = "cuda" if torch.cuda.is_available() else "cpu"
-SAMPLE_RATE  = 24000
 AVATAR_IMG   = "./avatar.jpg"          # uploaded face image
-VOICE_SAMPLE = "./voice_sample.wav"    # 6s sample for voice cloning
 
 # Search multiple paths for Wav2Lip checkpoint
 WAV2LIP_CKPT = None
@@ -416,12 +413,6 @@ async def upload_avatar(file: UploadFile = File(...)):
         f.write(contents)
     return {"status": "ok", "message": "Avatar photo saved"}
 
-@app.post("/upload/voice")
-async def upload_voice(file: UploadFile = File(...)):
-    contents = await file.read()
-    with open(VOICE_SAMPLE, "wb") as f:
-        f.write(contents)
-    return {"status": "ok", "message": "Voice sample saved — cloning active"}
 
 @app.get("/health")
 def health():
